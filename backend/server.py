@@ -284,14 +284,15 @@ def _set_session_cookie(response: Response, session_token: str, request: Request
     samesite_value = "none"
     secure_flag = True
     response.set_cookie(
-        key="session_token",
-        value=session_token,
-        httponly=True,
-        secure=secure_flag,
-        samesite=samesite_value,
-        max_age=7*24*60*60,
-        path="/"
-    )
+    key="session_token",
+    value=session_token,
+    httponly=True,
+    secure=True,              # MUST be True for cross-site
+    samesite="none",          # MUST be "none" for cross-site
+    max_age=7 * 24 * 60 * 60,
+    path="/"
+)
+
 
 async def require_admin(user: User = Depends(get_current_user)) -> User:
     if user.role not in ["admin", "superadmin"]:
