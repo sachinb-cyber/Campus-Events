@@ -281,7 +281,8 @@ def _set_session_cookie(response: Response, session_token: str, request: Request
 
     secure_flag = not (dev_disable_secure or _is_localhost(host))
     # Use SameSite=Lax for localhost (secure=False), SameSite=None for HTTPS
-    samesite_value = "lax" if not secure_flag else "none"
+    samesite_value = "none"
+    secure_flag = True
     response.set_cookie(
         key="session_token",
         value=session_token,
