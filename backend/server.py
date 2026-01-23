@@ -1,3 +1,5 @@
+from fastapi.middleware.cors import CORSMiddleware
+import os
 from fastapi import FastAPI, APIRouter, HTTPException, Response, Request, Depends
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
@@ -1328,10 +1330,21 @@ async def update_system_config(
 # Include router
 app.include_router(api_router)
 
+cors_origins_env = os.environ.get("CORS_ORIGINS")
+
+if cors_origins_env:
+    origins = [origin.strip() for origin in cors_origins_env.split(",")]
+else:
+    # Fallback for safety (development only)
+    origins = [
+        "http://localhost:3000",
+        "http://localhost:3001"
+    ]
+
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=origins,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_methods=["*"],
     allow_headers=["*"],
 )
