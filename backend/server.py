@@ -57,6 +57,7 @@ class User(BaseModel):
     prn: Optional[str] = None
     role: str = "user"
     is_blocked: bool = False
+    profile_complete: bool = False  # Track if user completed profile (college, department, phone, prn)
     password_hash: Optional[str] = None  # For admin/superadmin with password login
     created_at: datetime
 
@@ -585,6 +586,7 @@ async def exchange_supabase(data: SupabaseTokenExchange, response: Response, req
                 "name": name,
                 "picture": picture,
                 "role": role,
+                "profile_complete": False,  # New users need to complete profile
                 "created_at": datetime.now(timezone.utc)
             })
 
@@ -684,6 +686,47 @@ async def update_profile(profile: UserProfileUpdate, user: User = Depends(get_cu
     
     updated_user = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
     return updated_user
+
+@api_router.get("/auth/profile-options")
+async def get_profile_options():
+    """Get available colleges and departments for profile completion dropdown."""
+    config = await get_system_config()
+    return {
+        "colleges": config.get("colleges", []),
+        "departments": config.get("departments", [])
+    }
+
+@api_router.post("/auth/complete-profile")
+async def complete_profile(profile: UserProfileUpdate, user: User = Depends(get_current_user)):
+    """Complete user profile after first login. Required fields: college, department, phone, prn."""
+    # Validate required fields
+    if not profile.college or not profile.department or not profile.phone or not profile.prn:
+        raise HTTPException(
+            status_code=400, 
+            detail="College, department, phone, and PRN are required"
+        )
+    
+    # Update user profile and mark as complete
+    update_data = {
+        "college": profile.college,
+        "department": profile.department,
+        "phone": profile.phone,
+        "prn": profile.prn,
+        "name": profile.name or user.name,  # Update name if provided
+        "profile_complete": True,
+        "updated_at": datetime.now(timezone.utc)
+    }
+    
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$set": update_data}
+    )
+    
+    updated_user = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    return {
+        "message": "Profile completed successfully",
+        "user": updated_user
+    }
 
 @api_router.post("/auth/logout")
 async def logout(request: Request, response: Response):
