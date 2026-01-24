@@ -137,6 +137,26 @@ export default function AuthCallback() {
           localStorage.setItem('auth_user', JSON.stringify(user));
           console.log('✓ User stored in localStorage');
           
+          // Start session refresh timer - refresh every 50 minutes (before 1 hour expiration)
+          const refreshInterval = 50 * 60 * 1000; // 50 minutes
+          const refreshTimer = setInterval(async () => {
+            try {
+              const refreshResponse = await fetch(`${BACKEND_URL}/api/auth/refresh-session`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+              });
+              if (refreshResponse.ok) {
+                const refreshedUser = await refreshResponse.json();
+                localStorage.setItem('auth_user', JSON.stringify(refreshedUser.user));
+                console.log('✓ Session refreshed successfully');
+              }
+            } catch (error) {
+              console.warn('⚠ Session refresh failed, will require re-login:', error);
+            }
+          }, refreshInterval);
+          localStorage.setItem('sessionRefreshTimer', refreshTimer);
+          
           console.log('→ Redirecting based on role:', user.role);
           if (user.role === 'admin') {
             console.log('→ Redirecting to /admin');

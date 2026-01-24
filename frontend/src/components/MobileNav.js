@@ -8,6 +8,12 @@ export default function MobileNav({ user, isAdmin }) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const handleLogout = () => {
+    // Clear session refresh timer
+    const refreshTimer = localStorage.getItem('sessionRefreshTimer');
+    if (refreshTimer) {
+      clearInterval(parseInt(refreshTimer));
+      localStorage.removeItem('sessionRefreshTimer');
+    }
     // Clear all auth data
     localStorage.removeItem('auth_user');
     sessionStorage.removeItem('testUser');

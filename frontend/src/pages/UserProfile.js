@@ -116,6 +116,14 @@ export default function UserProfile() {
 
   const handleLogout = async () => {
     try {
+      // Clear session refresh timer
+      const refreshTimer = localStorage.getItem('sessionRefreshTimer');
+      if (refreshTimer) {
+        clearInterval(parseInt(refreshTimer));
+        localStorage.removeItem('sessionRefreshTimer');
+      }
+      localStorage.removeItem('auth_user');
+      
       await fetch(`${BACKEND_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include'
