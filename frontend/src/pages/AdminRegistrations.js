@@ -16,7 +16,7 @@ export default function AdminRegistrations() {
     fetchCurrentUser();
     fetchEvents();
     fetchRegistrations();
-  }, []);
+  }, [fetchRegistrations, fetchEvents]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -34,7 +34,7 @@ export default function AdminRegistrations() {
 
   useEffect(() => {
     fetchRegistrations();
-  }, [eventFilter]);
+  }, [eventFilter, fetchRegistrations]);
 
   const fetchEvents = async () => {
     try {

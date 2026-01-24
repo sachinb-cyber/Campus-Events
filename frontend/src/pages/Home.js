@@ -15,7 +15,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchEvents();
-  }, [eventTypeFilter, categoryFilter]);
+  }, [eventTypeFilter, categoryFilter, fetchEvents]);
 
   const fetchEvents = async () => {
     setLoading(true);

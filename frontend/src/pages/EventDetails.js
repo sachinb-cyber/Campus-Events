@@ -13,7 +13,7 @@ export default function EventDetails() {
 
   useEffect(() => {
     fetchEvent();
-  }, [eventId]);
+  }, [eventId, fetchEvent]);
 
   const fetchEvent = async () => {
     try {

@@ -140,7 +140,7 @@ function ProtectedRoute({ children }) {
       }
     };
     checkAuth();
-  }, []);
+  }, [location.state]);
 
   if (isAuthenticated === null) {
     return (

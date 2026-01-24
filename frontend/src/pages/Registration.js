@@ -22,7 +22,7 @@ export default function Registration() {
 
   useEffect(() => {
     fetchUserAndEvent();
-  }, [eventId]);
+  }, [eventId, fetchUserAndEvent]);
 
   const fetchUserAndEvent = async () => {
     try {
