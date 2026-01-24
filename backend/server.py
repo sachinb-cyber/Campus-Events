@@ -1,3 +1,5 @@
+from fastapi.middleware.cors import CORSMiddleware
+import os
 from fastapi import FastAPI, APIRouter, HTTPException, Response, Request, Depends
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
@@ -279,16 +281,18 @@ def _set_session_cookie(response: Response, session_token: str, request: Request
 
     secure_flag = not (dev_disable_secure or _is_localhost(host))
     # Use SameSite=Lax for localhost (secure=False), SameSite=None for HTTPS
-    samesite_value = "lax" if not secure_flag else "none"
+    samesite_value = "none"
+    secure_flag = True
     response.set_cookie(
-        key="session_token",
-        value=session_token,
-        httponly=True,
-        secure=secure_flag,
-        samesite=samesite_value,
-        max_age=7*24*60*60,
-        path="/"
-    )
+    key="session_token",
+    value=session_token,
+    httponly=True,
+    secure=True,              # MUST be True for cross-site
+    samesite="none",          # MUST be "none" for cross-site
+    max_age=7 * 24 * 60 * 60,
+    path="/"
+)
+
 
 async def require_admin(user: User = Depends(get_current_user)) -> User:
     if user.role not in ["admin", "superadmin"]:
@@ -1328,10 +1332,21 @@ async def update_system_config(
 # Include router
 app.include_router(api_router)
 
+cors_origins_env = os.environ.get("CORS_ORIGINS")
+
+if cors_origins_env:
+    origins = [origin.strip() for origin in cors_origins_env.split(",")]
+else:
+    # Fallback for safety (development only)
+    origins = [
+        "http://localhost:3000",
+        "http://localhost:3001"
+    ]
+
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=origins,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_methods=["*"],
     allow_headers=["*"],
 )
