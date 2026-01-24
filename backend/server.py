@@ -491,23 +491,25 @@ async def exchange_supabase(data: SupabaseTokenExchange, response: Response, req
     `session_token` cookie (httponly). For local development, set
     DEV_DISABLE_SECURE_COOKIE=true to allow the cookie to be set over HTTP.
     """
-    logging.info(f"exchange_supabase called")
-    access_token = data.access_token
-    if not access_token:
-        logging.error("access_token not provided in request")
-        raise HTTPException(status_code=400, detail="access_token required")
+    try:
+        try:
+            logging.info(f"✓ exchange_supabase called")
+            access_token = data.access_token
+            if not access_token:
+                logging.error("✗ access_token not provided in request")
+                raise HTTPException(status_code=400, detail="access_token required")
 
-    supabase_url = os.environ.get("SUPABASE_URL")
-    if not supabase_url:
-        logging.error("SUPABASE_URL not configured")
-        raise HTTPException(status_code=500, detail="SUPABASE_URL not configured on server")
+            supabase_url = os.environ.get("SUPABASE_URL")
+            if not supabase_url:
+                logging.error("✗ SUPABASE_URL not configured")
+                raise HTTPException(status_code=500, detail="SUPABASE_URL not configured on server")
 
-    supabase_anon_key = os.environ.get("SUPABASE_ANON_KEY")
-    if not supabase_anon_key:
-        logging.error("SUPABASE_ANON_KEY not configured")
-        raise HTTPException(status_code=500, detail="SUPABASE_ANON_KEY not configured on server")
+            supabase_anon_key = os.environ.get("SUPABASE_ANON_KEY")
+            if not supabase_anon_key:
+                logging.error("✗ SUPABASE_ANON_KEY not configured")
+                raise HTTPException(status_code=500, detail="SUPABASE_ANON_KEY not configured on server")
 
-    logging.info(f"Verifying token with Supabase: {supabase_url}")
+            logging.info(f"→ Verifying token with Supabase: {supabase_url}")
     logging.info(f"Token preview: {access_token[:50]}...")
     # Verify token with Supabase
     async with httpx.AsyncClient() as client:
@@ -528,7 +530,7 @@ async def exchange_supabase(data: SupabaseTokenExchange, response: Response, req
             supa_user = resp.json()
             logging.info(f"Supabase user info retrieved: {supa_user.get('email')}")
         except Exception as e:
-            logging.error(f"Failed to verify supabase token: {str(e)}", exc_info=True)
+            logging.error(f"✗ Failed to verify supabase token: {str(e)}", exc_info=True)
             
             # Provide more helpful error message
             error_msg = str(e)
@@ -540,63 +542,66 @@ async def exchange_supabase(data: SupabaseTokenExchange, response: Response, req
             else:
                 raise HTTPException(status_code=400, detail=f"Failed to verify supabase token: {str(e)}")
 
-    email = supa_user.get("email")
-    if not email:
-        raise HTTPException(status_code=400, detail="Supabase user info missing email")
+        email = supa_user.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Supabase user info missing email")
 
-    # Derive name and picture from user_metadata if available
-    user_metadata = supa_user.get("user_metadata") or {}
-    name = user_metadata.get("full_name") or user_metadata.get("name") or email
-    picture = user_metadata.get("avatar_url") or supa_user.get("picture")
+        # Derive name and picture from user_metadata if available
+        user_metadata = supa_user.get("user_metadata") or {}
+        name = user_metadata.get("full_name") or user_metadata.get("name") or email
+        picture = user_metadata.get("avatar_url") or supa_user.get("picture")
 
-    # ===== ROLE ASSIGNMENT LOGIC (CRITICAL) =====
-    # Hierarchical check:
-    # 1. If email in SUPER_ADMIN_EMAILS -> superadmin role
-    # 2. Else if email in ADMIN_EMAILS -> admin role
-    # 3. Else -> user role
-    # This happens at every login, so changing ADMIN_EMAILS env var takes effect next login
-    if email in SUPER_ADMIN_EMAILS:
-        role = "superadmin"
-    elif email in ADMIN_EMAILS:
-        role = "admin"
-    else:
-        role = "user"
+        # ===== ROLE ASSIGNMENT LOGIC (CRITICAL) =====
+        # Hierarchical check:
+        # 1. If email in SUPER_ADMIN_EMAILS -> superadmin role
+        # 2. Else if email in ADMIN_EMAILS -> admin role
+        # 3. Else -> user role
+        # This happens at every login, so changing ADMIN_EMAILS env var takes effect next login
+        if email in SUPER_ADMIN_EMAILS:
+            role = "superadmin"
+        elif email in ADMIN_EMAILS:
+            role = "admin"
+        else:
+            role = "user"
 
-    existing_user = await db.users.find_one({"email": email}, {"_id": 0})
-    if existing_user:
-        user_id = existing_user["user_id"]
-        await db.users.update_one(
-            {"user_id": user_id},
-            {"$set": {"name": name, "picture": picture, "role": role}}
-        )
-    else:
-        user_id = f"user_{uuid.uuid4().hex[:12]}"
-        await db.users.insert_one({
+        existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+        if existing_user:
+            user_id = existing_user["user_id"]
+            await db.users.update_one(
+                {"user_id": user_id},
+                {"$set": {"name": name, "picture": picture, "role": role}}
+            )
+        else:
+            user_id = f"user_{uuid.uuid4().hex[:12]}"
+            await db.users.insert_one({
+                "user_id": user_id,
+                "email": email,
+                "name": name,
+                "picture": picture,
+                "role": role,
+                "created_at": datetime.now(timezone.utc)
+            })
+
+        # Create backend session
+        session_token = f"session_{uuid.uuid4().hex}"
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+
+        await db.user_sessions.insert_one({
             "user_id": user_id,
-            "email": email,
-            "name": name,
-            "picture": picture,
-            "role": role,
+            "session_token": session_token,
+            "expires_at": expires_at,
             "created_at": datetime.now(timezone.utc)
         })
 
-    # Create backend session
-    session_token = f"session_{uuid.uuid4().hex}"
-    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        # Set cookie (secure flag auto-detected)
+        _set_session_cookie(response, session_token, request)
 
-    await db.user_sessions.insert_one({
-        "user_id": user_id,
-        "session_token": session_token,
-        "expires_at": expires_at,
-        "created_at": datetime.now(timezone.utc)
-    })
-
-    # Set cookie (secure flag auto-detected)
-    _set_session_cookie(response, session_token, request)
-
-
-    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
-    return user
+        user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+        logging.info(f"✓ User session created successfully for {email}")
+        return user
+    except Exception as outer_e:
+        logging.error(f"✗ Unexpected error in exchange_supabase: {str(outer_e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(outer_e)}")
 
 @api_router.get("/auth/me")
 async def get_me(user: User = Depends(get_current_user)):
@@ -1342,6 +1347,10 @@ else:
         "http://localhost:3000",
         "http://localhost:3001"
     ]
+
+# Debug: Log CORS configuration
+print(f"DEBUG: CORS_ORIGINS environment variable: {cors_origins_env}")
+print(f"DEBUG: Parsed CORS origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
