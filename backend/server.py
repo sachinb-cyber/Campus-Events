@@ -588,9 +588,9 @@ async def exchange_supabase(data: SupabaseTokenExchange, response: Response, req
                 "created_at": datetime.now(timezone.utc)
             })
 
-        # Create backend session
+        # Create backend session - expires after 1 hour (must refresh for continuous access)
         session_token = f"session_{uuid.uuid4().hex}"
-        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
 
         await db.user_sessions.insert_one({
             "user_id": user_id,
@@ -609,9 +609,66 @@ async def exchange_supabase(data: SupabaseTokenExchange, response: Response, req
         logging.error(f"✗ Unexpected error in exchange_supabase: {str(outer_e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(outer_e)}")
 
+@api_router.post("/auth/refresh-session")
+async def refresh_session(user: User = Depends(get_current_user), response: Response = None, request: Request = None):
+    """Refresh session token - called every hour to extend session.
+    
+    Returns new session token with 1-hour expiration.
+    Must be called before current session expires.
+    """
+    try:
+        # Verify user still exists and check current role from database
+        current_user = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+        
+        if not current_user:
+            raise HTTPException(status_code=401, detail="User not found")
+        
+        # Verify email matches (security check)
+        if current_user.get("email") != user.email:
+            logging.warning(f"Email mismatch during session refresh for user {user.user_id}")
+            raise HTTPException(status_code=401, detail="Email verification failed")
+        
+        # Create new session token
+        new_session_token = f"session_{uuid.uuid4().hex}"
+        new_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        
+        # Delete old session
+        await db.user_sessions.delete_one({"user_id": user.user_id})
+        
+        # Insert new session
+        await db.user_sessions.insert_one({
+            "user_id": user.user_id,
+            "session_token": new_session_token,
+            "expires_at": new_expires_at,
+            "created_at": datetime.now(timezone.utc)
+        })
+        
+        # Set new session cookie
+        if response and request:
+            _set_session_cookie(response, new_session_token, request)
+        
+        logging.info(f"✓ Session refreshed for user {user.email}")
+        return {
+            "session_token": new_session_token,
+            "expires_at": new_expires_at.isoformat(),
+            "user": current_user,
+            "redirect_to": f"/{current_user['role']}-dashboard" if current_user['role'] != 'user' else '/home'
+        }
+    except Exception as e:
+        logging.error(f"✗ Session refresh failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Session refresh failed: {str(e)}")
+
 @api_router.get("/auth/me")
 async def get_me(user: User = Depends(get_current_user)):
-    return user
+    # Return user with redirect information based on role
+    user_data = user.model_dump()
+    if user.role == "superadmin":
+        user_data["redirect_to"] = "/superadmin-panel"
+    elif user.role == "admin":
+        user_data["redirect_to"] = "/admin-dashboard"
+    else:
+        user_data["redirect_to"] = "/home"
+    return user_data
 
 @api_router.put("/auth/profile")
 async def update_profile(profile: UserProfileUpdate, user: User = Depends(get_current_user)):
