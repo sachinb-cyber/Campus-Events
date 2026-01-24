@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Users, TrendingUp, UserCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Calendar, Users, TrendingUp, UserCheck, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,6 +46,31 @@ export default function AdminDashboard() {
           </h1>
           <p className="text-slate-600">Overview of all events and registrations</p>
         </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <button
+            onClick={() => navigate('/admin/registrations')}
+            className="bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-2xl shadow-lg p-6 transition-all active:scale-95 text-left"
+          >
+            <Calendar className="w-8 h-8 mb-3" />
+            <h3 className="font-bold text-lg mb-1">View Registrations</h3>
+            <p className="text-sm text-indigo-100">See all event registrations</p>
+          </button>
+
+          <button
+            onClick={() => navigate('/admin/events')}
+            className="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-2xl shadow-lg p-6 transition-all active:scale-95 text-left"
+          >
+            <Users className="w-8 h-8 mb-3" />
+            <h3 className="font-bold text-lg mb-1">Manage Events</h3>
+            <p className="text-sm text-purple-100">Create and edit events</p>
+          </button>
+        </div>
+
+        <h2 className="text-2xl font-bold text-slate-900 mb-6" style={{ fontFamily: 'Outfit, sans-serif' }}>
+          Analytics
+        </h2>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

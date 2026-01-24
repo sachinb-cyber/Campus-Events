@@ -20,6 +20,7 @@ import AdminTickets from './pages/AdminTickets';
 import SuperAdminPanel from './pages/SuperAdminPanel';
 import SystemSettings from './pages/SystemSettings';
 import ExtendedEventForm from './pages/ExtendedEventForm';
+import AdminUserProfile from './pages/AdminUserProfile';
 import MobileNav from './components/MobileNav';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -72,6 +73,8 @@ function AppRouter() {
       <Route path="/superadmin/panel" element={<SuperAdminRoute><SuperAdminPanel /></SuperAdminRoute>} />
       <Route path="/superadmin/settings" element={<SuperAdminRoute><SystemSettings /></SuperAdminRoute>} />
       <Route path="/superadmin/create-extended-event" element={<SuperAdminRoute><ExtendedEventForm /></SuperAdminRoute>} />
+      <Route path="/admin/user/:userId" element={<AdminRoute><AdminUserProfile /></AdminRoute>} />
+      <Route path="/superadmin/user/:userId" element={<SuperAdminRoute><AdminUserProfile /></SuperAdminRoute>} />
     </Routes>
   );
 }

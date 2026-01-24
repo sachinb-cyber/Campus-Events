@@ -180,7 +180,7 @@ export default function SuperAdminPanel() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {admins.map((admin) => (
               <div key={admin.user_id} className="bg-slate-50 rounded-xl p-4 flex items-center justify-between" data-testid={`admin-card-${admin.user_id}`}>
-                <div>
+                <div className="flex-1">
                   <p className="font-semibold text-slate-900">{admin.name}</p>
                   <p className="text-sm text-slate-600">{admin.email}</p>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${
@@ -189,14 +189,22 @@ export default function SuperAdminPanel() {
                     {admin.role === 'superadmin' ? 'Super Admin' : 'Admin'}
                   </span>
                 </div>
-                {admin.role === 'admin' && (
+                <div className="flex space-x-2">
                   <button
-                    onClick={() => handleRemoveAdmin(admin.user_id)}
-                    className="text-red-600 hover:text-red-700"
+                    onClick={() => navigate(`/superadmin/user/${admin.user_id}`)}
+                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg px-3 py-2 font-medium transition-all text-sm"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    View
                   </button>
-                )}
+                  {admin.role === 'admin' && (
+                    <button
+                      onClick={() => handleRemoveAdmin(admin.user_id)}
+                      className="text-red-600 hover:text-red-700 p-2"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -230,6 +238,12 @@ export default function SuperAdminPanel() {
                     )}
                   </div>
                   <div className="flex space-x-2">
+                    <button
+                      onClick={() => navigate(`/superadmin/user/${student.user_id}`)}
+                      className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg px-3 py-2 font-medium transition-all text-sm"
+                    >
+                      View
+                    </button>
                     {student.is_blocked ? (
                       <button
                         onClick={() => handleUnblockUser(student.user_id)}
