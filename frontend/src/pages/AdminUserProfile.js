@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Phone, BookOpen, Hash, MapPin, Calendar, User as UserIcon, Shield, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -12,11 +12,7 @@ export default function AdminUserProfile() {
   const [loading, setLoading] = useState(true);
   const [registrations, setRegistrations] = useState([]);
 
-  useEffect(() => {
-    fetchUserDetails();
-  }, [userId]);
-
-  const fetchUserDetails = async () => {
+  const fetchUserDetails = useCallback(async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/superadmin/users/${userId}`, {
         credentials: 'include'
@@ -39,7 +35,11 @@ export default function AdminUserProfile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchUserDetails();
+  }, [fetchUserDetails]);
 
   if (loading) {
     return (
