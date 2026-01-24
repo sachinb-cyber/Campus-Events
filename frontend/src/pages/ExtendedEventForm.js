@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Copy, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '../hooks/useAuth';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -21,8 +20,9 @@ const FIELD_TYPES = [
 
 export default function ExtendedEventForm() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [userLoading, setUserLoading] = useState(true);
+  const [user, setUser] = useState(null);
   const [eventData, setEventData] = useState({
     title: '',
     description: '',
@@ -45,11 +45,32 @@ export default function ExtendedEventForm() {
 
   // Check if user is Super Admin
   useEffect(() => {
-    if (user && user.role !== 'superadmin') {
-      toast.error('Access denied. Only Super Admin can create extended event forms.');
-      navigate('/');
-    }
-  }, [user, navigate]);
+    const checkAuth = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+          if (userData.role !== 'superadmin') {
+            toast.error('Access denied. Only Super Admin can create extended event forms.');
+            navigate('/');
+          }
+        } else {
+          toast.error('Please login first');
+          navigate('/superadmin/login');
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        toast.error('Authentication failed');
+        navigate('/superadmin/login');
+      } finally {
+        setUserLoading(false);
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   const handleEventChange = (field, value) => {
     setEventData(prev => ({
@@ -184,7 +205,15 @@ export default function ExtendedEventForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 py-8 px-4">
-      <div className="max-w-5xl mx-auto">
+      {userLoading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-slate-600">Verifying access...</p>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-slate-900 mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
@@ -435,6 +464,8 @@ export default function ExtendedEventForm() {
           </div>
         </form>
       </div>
+        </div>
+      )}
     </div>
   );
 }
