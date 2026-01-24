@@ -7,20 +7,21 @@ export default function Login() {
   // Users can be students or general participants
   // After login, role is determined on backend based on email
   const handleLogin = async () => {
-    console.log('Login: handleLogin called');
+    console.log('=== LOGIN DEBUG START ===');
+    console.log('✓ handleLogin called');
     
     // Use Supabase OAuth for Google login
     // After user consents on Google, redirects back to REACT_APP_SUPABASE_REDIRECT
     // Supabase includes access_token in URL, AuthCallback.js extracts it
     const redirectTarget = process.env.REACT_APP_SUPABASE_REDIRECT || window.location.origin;
-    console.log('Login: Using Supabase OAuth with redirect:', redirectTarget);
+    console.log('→ Supabase OAuth redirect target:', redirectTarget);
     
     // Runtime check for configuration
     if (!process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY.includes('your-supabase-anon-key')) {
-      console.warn('Supabase anon key looks missing or is a placeholder. Set REACT_APP_SUPABASE_ANON_KEY in frontend/.env');
+      console.warn('⚠ Supabase anon key looks missing or is a placeholder. Set REACT_APP_SUPABASE_ANON_KEY in frontend/.env');
     }
     try {
-      console.log('Login: Calling supabase.auth.signInWithOAuth...');
+      console.log('→ Calling supabase.auth.signInWithOAuth with provider: google');
       // Initiates Google OAuth flow through Supabase
       await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -28,8 +29,10 @@ export default function Login() {
           redirectTo: redirectTarget
         }
       });
+      console.log('✓ Supabase signInWithOAuth call completed');
     } catch (err) {
-      console.error('Supabase signInWithOAuth failed', err);
+      console.error('✗ Supabase signInWithOAuth failed:', err);
+      console.log('=== LOGIN DEBUG END - FAILED ===');
       throw err;
     }
   }

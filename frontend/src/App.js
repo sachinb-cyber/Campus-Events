@@ -27,12 +27,28 @@ function AppRouter() {
   // Support session_id delivered either in the URL hash (#session_id=...) or
   // in the query string (?session_id=...). Some providers return one or the other.
   // Also support Supabase access_token in hash
-  const hasSessionIdInHash = location.hash?.includes('session_id=');
-  const hasSessionIdInSearch = location.search?.includes('session_id=');
-  const hasAccessToken = location.hash?.includes('access_token=');
+  const hash = location.hash || '';
+  const search = location.search || '';
+  const hasSessionIdInHash = hash.includes('session_id=');
+  const hasSessionIdInSearch = search.includes('session_id=');
+  const hasAccessToken = hash.includes('access_token=') || search.includes('access_token=');
+  const hasErrorInAuth = hash.includes('error=') || search.includes('error=');
+  
+  // Log auth redirect for debugging
+  if (hasAccessToken || hasSessionIdInHash || hasSessionIdInSearch) {
+    console.log('AppRouter: Detected OAuth callback, routing to AuthCallback');
+    console.log('Auth URL params:', { hash: hash.substring(0, 100), search: search.substring(0, 100) });
+  }
+  
   if (hasSessionIdInHash || hasSessionIdInSearch || hasAccessToken) {
     return <AuthCallback />;
   }
+  
+  if (hasErrorInAuth) {
+    console.error('AppRouter: OAuth error detected in URL:', { hash, search });
+    return <Navigate to="/login" />;
+  }
+  
   return (
     <Routes>
       <Route path="/login" element={<Login />} />

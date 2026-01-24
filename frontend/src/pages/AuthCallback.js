@@ -30,12 +30,18 @@ export default function AuthCallback() {
       // - Some: ?access_token=... (query string)
       const hash = location.hash || '';
       const search = location.search || '';
-      console.log('AuthCallback: Processing auth response', { hash: hash.substring(0, 100), search: search.substring(0, 100) });
+      console.log('=== AuthCallback DEBUG START ===');
+      console.log('Full URL:', window.location.href);
+      console.log('Hash:', hash);
+      console.log('Search:', search);
+      console.log('Processing auth response', { hash: hash.substring(0, 100), search: search.substring(0, 100) });
       const sessionIdMatch = hash.match(/session_id=([^&]+)/) || search.match(/[?&]session_id=([^&]+)/);
 
       if (sessionIdMatch) {
         const sessionId = sessionIdMatch[1];
+        console.log('✓ Found session_id:', sessionId);
         try {
+          console.log('→ Calling /api/auth/session endpoint...');
           const response = await fetch(`${BACKEND_URL}/api/auth/session`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -43,24 +49,30 @@ export default function AuthCallback() {
             body: JSON.stringify({ session_id: sessionId })
           });
 
+          console.log('← Response status:', response.status);
           if (!response.ok) {
             const errText = await response.text();
             throw new Error(`Session exchange failed: ${response.status} ${errText}`);
           }
 
           const user = await response.json();
-          console.log('AuthCallback: Session exchange successful, user:', user);
+          console.log('✓ Session exchange successful, user:', user);
           toast.success(`Welcome, ${user.name}!`);
 
+          console.log('→ Redirecting based on role:', user.role);
           if (user.role === 'admin') {
+            console.log('→ Redirecting to /rcpitadmin/login');
             navigate('/rcpitadmin/login', { state: { user }, replace: true });
           } else {
+            console.log('→ Redirecting to /login');
             navigate('/login', { state: { user }, replace: true });
           }
           return;
         } catch (error) {
-          console.error('AuthCallback: session exchange failed', error);
+          console.error('✗ Session exchange failed:', error);
+          console.error('Error details:', error.message);
           toast.error(`Authentication failed: ${error.message}`);
+          console.log('→ Redirecting to /login due to error');
           navigate('/login');
           return;
         }
@@ -68,9 +80,26 @@ export default function AuthCallback() {
 
       // If no session_id, check for Supabase tokens (access_token) in redirect
       const accessTokenMatch = hash.match(/access_token=([^&]+)/) || search.match(/[?&]access_token=([^&]+)/);
+      console.log('Token matching results:', { 
+        hasHashToken: hash.match(/access_token=([^&]+)/) ? true : false,
+        hasSearchToken: search.match(/[?&]access_token=([^&]+)/) ? true : false,
+        accessTokenMatch: accessTokenMatch ? 'found' : 'not found'
+      });
+      
       if (accessTokenMatch) {
         const accessToken = accessTokenMatch[1];
-        console.log('AuthCallback: Found access_token, exchanging with backend...');
+        console.log('✓ Found access_token, token length:', accessToken.length, ', first 50 chars:', accessToken.substring(0, 50) + '...');
+        
+        // If no backend URL, store token in localStorage and redirect
+        if (!BACKEND_URL) {
+          console.warn('⚠ BACKEND_URL not configured, using local token storage');
+          localStorage.setItem('supabase_token', accessToken);
+          navigate('/', { replace: true });
+          return;
+        }
+        
+        console.log('→ Calling /api/auth/exchange-supabase endpoint...');
+        console.log('Backend URL:', BACKEND_URL);
         try {
           const response = await fetch(`${BACKEND_URL}/api/auth/exchange-supabase`, {
             method: 'POST',
@@ -79,37 +108,60 @@ export default function AuthCallback() {
             body: JSON.stringify({ access_token: accessToken })
           });
 
+          console.log('← Response status:', response.status);
+          console.log('← Response headers:', {
+            'Content-Type': response.headers.get('Content-Type'),
+            'Content-Length': response.headers.get('Content-Length')
+          });
+          
           if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
+            const errText = await response.text();
+            console.log('← Error response body:', errText);
+            let errData = {};
+            try {
+              errData = JSON.parse(errText);
+            } catch (e) {
+              // If not JSON, just use empty object
+            }
             const errorDetail = errData.detail || response.statusText;
             throw new Error(`Token exchange failed (${response.status}): ${errorDetail}`);
           }
 
-          const user = await response.json();
-          console.log('AuthCallback: Exchange successful, user:', user);
+          const responseText = await response.text();
+          console.log('← Response body (raw):', responseText);
+          const user = JSON.parse(responseText);
+          console.log('✓ Exchange successful, user:', user);
           toast.success(`Welcome, ${user.name}!`);
           
           // Store user in localStorage as fallback
           localStorage.setItem('auth_user', JSON.stringify(user));
+          console.log('✓ User stored in localStorage');
           
+          console.log('→ Redirecting based on role:', user.role);
           if (user.role === 'admin') {
+            console.log('→ Redirecting to /admin');
             navigate('/admin', { state: { user }, replace: true });
           } else if (user.role === 'superadmin') {
+            console.log('→ Redirecting to /superadmin/panel');
             navigate('/superadmin/panel', { state: { user }, replace: true });
           } else {
+            console.log('→ Redirecting to / (home page)');
             navigate('/', { state: { user }, replace: true });
           }
           return;
         } catch (error) {
-          console.error('AuthCallback: supabase exchange failed', error);
+          console.error('✗ Supabase exchange failed:', error);
+          console.error('Error details:', error.message);
           const errorMsg = error.message || 'Authentication failed';
           toast.error(`Auth Error: ${errorMsg}`);
+          console.log('→ Redirecting to /login due to error');
           navigate('/login');
           return;
         }
       }
 
-      console.error('AuthCallback: no session_id or access_token found', { hash, search });
+      console.error('✗ No session_id or access_token found in URL');
+      console.log('=== AuthCallback DEBUG END - FAILED ===');
       toast.error('Invalid authentication response');
       navigate('/login');
     };
