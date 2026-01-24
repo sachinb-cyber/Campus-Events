@@ -553,18 +553,24 @@ async def exchange_supabase(data: SupabaseTokenExchange, response: Response, req
 
         # ===== ROLE ASSIGNMENT LOGIC (CRITICAL) =====
         # Hierarchical check:
-        # 1. If email in SUPER_ADMIN_EMAILS -> superadmin role
-        # 2. Else if email in ADMIN_EMAILS -> admin role
-        # 3. Else -> user role
-        # This happens at every login, so changing ADMIN_EMAILS env var takes effect next login
-        if email in SUPER_ADMIN_EMAILS:
+        # 1. Check database first - if user exists with admin/superadmin role, preserve it
+        # 2. If email in SUPER_ADMIN_EMAILS -> superadmin role
+        # 3. Else if email in ADMIN_EMAILS -> admin role
+        # 4. Else -> user role
+        # This allows admins added via Super Admin Panel to keep their role on login
+
+        existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+        
+        # Determine role with proper hierarchy
+        if existing_user and existing_user.get("role") in ["superadmin", "admin"]:
+            # Preserve existing admin role from database
+            role = existing_user["role"]
+        elif email in SUPER_ADMIN_EMAILS:
             role = "superadmin"
         elif email in ADMIN_EMAILS:
             role = "admin"
         else:
             role = "user"
-
-        existing_user = await db.users.find_one({"email": email}, {"_id": 0})
         if existing_user:
             user_id = existing_user["user_id"]
             await db.users.update_one(
