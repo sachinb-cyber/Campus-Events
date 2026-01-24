@@ -1,20 +1,19 @@
-import { Chrome, ArrowLeft } from 'lucide-react';
+import { Chrome, ArrowLeft, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '../supabaseClient'
 
-export default function SuperAdminLogin() {
-  // ===== SUPERADMIN LOGIN (GOOGLE OAUTH ONLY) =====
-  // Only superadmins can access /superadmin routes
-  // Login uses same Google OAuth as students and admins
-  // Backend assigns superadmin role based on email in SUPER_ADMIN_EMAILS env var
-  // Currently: sachinb2800@gmail.com is the only superadmin
-  // For production, update SUPER_ADMIN_EMAILS=your-superadmin-email@college.edu
-  const navigate = useNavigate();
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
-  const handleLogin = async () => {
-    // Google OAuth flow through Supabase
-    // Backend checks if email is in SUPER_ADMIN_EMAILS
-    // Strict role check: only superadmin role gets access to /superadmin routes
+export default function SuperAdminLogin() {
+  const navigate = useNavigate();
+  const [loginMethod, setLoginMethod] = useState('google'); // 'google' or 'credentials'
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
     const redirectTarget = process.env.REACT_APP_SUPABASE_REDIRECT || window.location.origin;
     try {
       await supabase.auth.signInWithOAuth({
@@ -25,8 +24,42 @@ export default function SuperAdminLogin() {
       });
     } catch (err) {
       console.error('Google sign in failed', err);
+      toast.error('Google login failed');
     }
-  }
+  };
+
+  const handleCredentialsLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/superadmin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Login failed');
+      }
+
+      const user = await response.json();
+      toast.success('Login successful!');
+      
+      // Store user data
+      localStorage.setItem('auth_user', JSON.stringify(user));
+      
+      // Redirect to superadmin panel
+      navigate('/superadmin/panel');
+    } catch (error) {
+      toast.error(error.message || 'Invalid credentials');
+      console.error('Login error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div
@@ -70,13 +103,89 @@ export default function SuperAdminLogin() {
             <p className="text-slate-600">Full system access and control</p>
           </div>
 
-          <button
-            onClick={handleLogin}
-            className="w-full bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 rounded-full px-6 py-3 font-semibold shadow-sm hover:shadow-md transition-all active:scale-95 flex items-center justify-center space-x-3"
-          >
-            <Chrome className="w-5 h-5 text-purple-600" />
-            <span>Sign in with Google</span>
-          </button>
+          {/* Login Method Tabs */}
+          <div className="flex gap-2 mb-6 bg-slate-100 rounded-lg p-1">
+            <button
+              onClick={() => setLoginMethod('google')}
+              className={`flex-1 py-2 rounded font-medium transition-all ${
+                loginMethod === 'google'
+                  ? 'bg-white text-purple-600 shadow'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Chrome className="w-4 h-4 inline mr-2" />
+              Google
+            </button>
+            <button
+              onClick={() => setLoginMethod('credentials')}
+              className={`flex-1 py-2 rounded font-medium transition-all ${
+                loginMethod === 'credentials'
+                  ? 'bg-white text-purple-600 shadow'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <LogIn className="w-4 h-4 inline mr-2" />
+              Email
+            </button>
+          </div>
+
+          {loginMethod === 'google' ? (
+            <button
+              onClick={handleGoogleLogin}
+              className="w-full bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 rounded-full px-6 py-3 font-semibold shadow-sm hover:shadow-md transition-all active:scale-95 flex items-center justify-center space-x-3"
+            >
+              <Chrome className="w-5 h-5 text-purple-600" />
+              <span>Sign in with Google</span>
+            </button>
+          ) : (
+            <form onSubmit={handleCredentialsLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="superadmin@college.edu"
+                  required
+                  className="w-full h-10 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  required
+                  className="w-full h-10 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-slate-400 text-white rounded-full px-6 py-3 font-semibold shadow-sm hover:shadow-md transition-all active:scale-95 flex items-center justify-center space-x-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Signing in...</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-5 h-5" />
+                    <span>Sign in</span>
+                  </>
+                )}
+              </button>
+            </form>
+          )}
 
           <div className="mt-6 text-center">
             <p className="text-sm text-slate-500">

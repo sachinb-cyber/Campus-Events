@@ -214,15 +214,15 @@ export default function ExtendedEventForm() {
         </div>
       ) : (
         <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            Create Extended Event Form
-          </h1>
-          <p className="text-slate-600">Design custom registration forms for your events (Super Admin Only)</p>
-        </div>
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-slate-900 mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              Create Extended Event Form
+            </h1>
+            <p className="text-slate-600">Design custom registration forms for your events (Super Admin Only)</p>
+          </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-8">
           {/* Event Basic Details */}
           <div className="bg-white rounded-2xl shadow-lg p-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-6" style={{ fontFamily: 'Outfit, sans-serif' }}>
@@ -462,8 +462,7 @@ export default function ExtendedEventForm() {
               Cancel
             </button>
           </div>
-        </form>
-      </div>
+          </form>
         </div>
       )}
     </div>
