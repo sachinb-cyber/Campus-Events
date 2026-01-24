@@ -17,7 +17,10 @@ export default function AdminUserProfile() {
       const response = await fetch(`${BACKEND_URL}/api/superadmin/users/${userId}`, {
         credentials: 'include'
       });
-      if (!response.ok) throw new Error('Failed to load user');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to load user (${response.status})`);
+      }
       const userData = await response.json();
       setUser(userData);
 
@@ -28,10 +31,13 @@ export default function AdminUserProfile() {
       if (regResponse.ok) {
         const regData = await regResponse.json();
         setRegistrations(Array.isArray(regData) ? regData : []);
+      } else {
+        // Don't fail if registrations fail to load, just continue
+        console.warn('Failed to load registrations');
       }
     } catch (error) {
-      toast.error('Failed to load user details');
-      console.error(error);
+      toast.error(error.message || 'Failed to load user details');
+      console.error('User details fetch error:', error);
     } finally {
       setLoading(false);
     }
