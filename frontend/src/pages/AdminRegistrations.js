@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Download, Users, Filter, Award, XCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -12,13 +12,7 @@ export default function AdminRegistrations() {
   const [exporting, setExporting] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-  useEffect(() => {
-    fetchCurrentUser();
-    fetchEvents();
-    fetchRegistrations();
-  }, [fetchRegistrations, fetchEvents]);
-
-  const fetchCurrentUser = async () => {
+  const fetchCurrentUser = useCallback(async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
         credentials: 'include'
@@ -30,13 +24,9 @@ export default function AdminRegistrations() {
     } catch (error) {
       console.error('Failed to load user');
     }
-  };
+  }, []);
 
-  useEffect(() => {
-    fetchRegistrations();
-  }, [eventFilter, fetchRegistrations]);
-
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/events`, {
         credentials: 'include'
@@ -46,9 +36,9 @@ export default function AdminRegistrations() {
     } catch (error) {
       console.error('Failed to load events');
     }
-  };
+  }, []);
 
-  const fetchRegistrations = async () => {
+  const fetchRegistrations = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (eventFilter) params.append('event_id', eventFilter);
@@ -64,7 +54,17 @@ export default function AdminRegistrations() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventFilter]);
+
+  useEffect(() => {
+    fetchCurrentUser();
+    fetchEvents();
+    fetchRegistrations();
+  }, [fetchCurrentUser, fetchEvents, fetchRegistrations]);
+
+  useEffect(() => {
+    fetchRegistrations();
+  }, [eventFilter, fetchRegistrations]);
 
   const handleExport = async () => {
     setExporting(true);

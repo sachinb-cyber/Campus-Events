@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,11 +20,7 @@ export default function Registration() {
     { name: '', email: '', phone: '', college: '', department: '', year: '', prn: '' }
   ]);
 
-  useEffect(() => {
-    fetchUserAndEvent();
-  }, [eventId, fetchUserAndEvent]);
-
-  const fetchUserAndEvent = async () => {
+  const fetchUserAndEvent = useCallback(async () => {
     try {
       // Fetch user profile
       const userResponse = await fetch(`${BACKEND_URL}/api/auth/me`, {
@@ -64,7 +60,11 @@ export default function Registration() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventId, navigate]);
+
+  useEffect(() => {
+    fetchUserAndEvent();
+  }, [eventId, fetchUserAndEvent]);
 
   const handleMemberChange = (index, field, value) => {
     const updated = [...teamMembers];

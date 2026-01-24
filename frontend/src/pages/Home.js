@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Calendar, Users, MapPin, Filter } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,11 +13,7 @@ export default function Home() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    fetchEvents();
-  }, [eventTypeFilter, categoryFilter, fetchEvents]);
-
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
       // If backend URL is not set, skip fetch
@@ -44,7 +40,11 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventTypeFilter, categoryFilter, search]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [eventTypeFilter, categoryFilter, fetchEvents]);
 
   const handleSearch = (e) => {
     e.preventDefault();

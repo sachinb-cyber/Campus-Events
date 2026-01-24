@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Users, Clock, FileText, User as UserIcon, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,11 +11,7 @@ export default function EventDetails() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchEvent();
-  }, [eventId, fetchEvent]);
-
-  const fetchEvent = async () => {
+  const fetchEvent = useCallback(async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/events/${eventId}`, {
         credentials: 'include'
@@ -29,7 +25,11 @@ export default function EventDetails() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventId, navigate]);
+
+  useEffect(() => {
+    fetchEvent();
+  }, [fetchEvent]);
 
   if (loading) {
     return (
