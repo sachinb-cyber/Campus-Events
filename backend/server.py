@@ -544,8 +544,8 @@ async def exchange_supabase(data: SupabaseTokenExchange, response: Response, req
                         raise HTTPException(status_code=400, detail=f"Failed to verify supabase token: {str(e)}")
 
             email = supa_user.get("email")
-        if not email:
-            raise HTTPException(status_code=400, detail="Supabase user info missing email")
+            if not email:
+                raise HTTPException(status_code=400, detail="Supabase user info missing email")
 
         # Derive name and picture from user_metadata if available
         user_metadata = supa_user.get("user_metadata") or {}
