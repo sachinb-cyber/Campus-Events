@@ -120,6 +120,13 @@ class UserSession(BaseModel):
     expires_at: datetime
     created_at: datetime
 
+class CustomField(BaseModel):
+    id: int
+    label: str
+    type: str  # text, textarea, number, email, phone, date, checkbox, radio, select, file
+    required: bool = False
+    options: Optional[List[str]] = None  # For radio, select types
+
 class Event(BaseModel):
     event_id: str
     title: str
@@ -136,6 +143,7 @@ class Event(BaseModel):
     is_paid: bool = False
     event_image: Optional[str] = None
     required_fields: List[str] = ["name", "email", "phone", "college"]
+    custom_fields: Optional[List[CustomField]] = None  # Custom registration fields
     created_at: datetime
 
 class EventCreate(BaseModel):
@@ -150,6 +158,7 @@ class EventCreate(BaseModel):
     rules: Optional[str] = None
     organizer_info: Optional[str] = None
     is_paid: bool = False
+    custom_fields: Optional[List[CustomField]] = None  # Custom registration fields
 
 class EventUpdate(BaseModel):
     title: Optional[str] = None
@@ -164,6 +173,7 @@ class EventUpdate(BaseModel):
     rules: Optional[str] = None
     organizer_info: Optional[str] = None
     is_paid: Optional[bool] = None
+    custom_fields: Optional[List[CustomField]] = None  # Custom registration fields
 
 class TeamMember(BaseModel):
     name: str

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Users, Shield, Ban, Check, Trash2, UserPlus, Award, XCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Shield, Ban, Check, Trash2, UserPlus, Award, XCircle, FormInput } from 'lucide-react';
 import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default function SuperAdminPanel() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddAdmin, setShowAddAdmin] = useState(false);
@@ -123,6 +125,38 @@ export default function SuperAdminPanel() {
             <p className="text-slate-600">Manage users, admins, and system settings</p>
           </div>
         </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <button
+            onClick={() => navigate('/superadmin/create-extended-event')}
+            className="bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-2xl shadow-lg p-6 transition-all active:scale-95"
+          >
+            <FormInput className="w-8 h-8 mb-3" />
+            <h3 className="font-bold text-lg mb-1">Create Extended Event</h3>
+            <p className="text-sm text-indigo-100">Build custom registration forms like Google Forms</p>
+          </button>
+
+          <button
+            onClick={() => navigate('/admin/events')}
+            className="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-2xl shadow-lg p-6 transition-all active:scale-95"
+          >
+            <Award className="w-8 h-8 mb-3" />
+            <h3 className="font-bold text-lg mb-1">Manage Events</h3>
+            <p className="text-sm text-purple-100">View and edit all events</p>
+          </button>
+
+          <button
+            onClick={() => navigate('/superadmin/settings')}
+            className="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl shadow-lg p-6 transition-all active:scale-95"
+          >
+            <Shield className="w-8 h-8 mb-3" />
+            <h3 className="font-bold text-lg mb-1">System Settings</h3>
+            <p className="text-sm text-blue-100">Configure colleges & departments</p>
+          </button>
+        </div>
+
+        {/* Users Management Section */}
 
         {/* Admin Management */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
