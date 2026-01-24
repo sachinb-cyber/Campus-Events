@@ -157,8 +157,13 @@ export default function AuthCallback() {
           }, refreshInterval);
           localStorage.setItem('sessionRefreshTimer', refreshTimer);
           
-          console.log('→ Redirecting based on role:', user.role);
-          if (user.role === 'admin') {
+          console.log('→ Redirecting based on role and profile completion:', user.role, 'profile_complete:', user.profile_complete);
+          
+          // Check if profile is complete for regular users
+          if (user.role === 'user' && !user.profile_complete) {
+            console.log('→ Redirecting to /complete-profile');
+            navigate('/complete-profile', { state: { user }, replace: true });
+          } else if (user.role === 'admin') {
             console.log('→ Redirecting to /admin');
             navigate('/admin', { state: { user }, replace: true });
           } else if (user.role === 'superadmin') {

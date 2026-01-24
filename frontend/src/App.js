@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import AdminLogin from './pages/AdminLogin';
 import SuperAdminLogin from './pages/SuperAdminLogin';
 import AuthCallback from './pages/AuthCallback';
+import ProfileCompletion from './pages/ProfileCompletion';
 import Home from './pages/Home';
 import AuthDebug from './pages/AuthDebug';
 import EventDetails from './pages/EventDetails';
@@ -55,6 +56,7 @@ function AppRouter() {
   <Route path="/auth-debug" element={<AuthDebug />} />
       <Route path="/rcpitadmin/login" element={<AdminLogin />} />
       <Route path="/superadmin/login" element={<SuperAdminLogin />} />
+      <Route path="/complete-profile" element={location.state?.user ? <ProfileCompletion user={location.state.user} /> : <Navigate to="/login" />} />
       <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/events/:eventId" element={<ProtectedRoute><EventDetails /></ProtectedRoute>} />
       <Route path="/register/:eventId" element={<ProtectedRoute><Registration /></ProtectedRoute>} />
