@@ -57,15 +57,15 @@ export default function ProfileCompletion({ user }) {
       return;
     }
 
-    // Validate phone number (10-15 digits)
-    if (!/^\d{10,15}$/.test(formData.phone)) {
-      toast.error('Please enter a valid mobile number (10-15 digits)');
+    // Validate phone number (exactly 10 digits)
+    if (!/^\d{10}$/.test(formData.phone)) {
+      toast.error('Please enter a valid mobile number (exactly 10 digits)');
       return;
     }
 
-    // Validate PRN (alphanumeric)
-    if (!/^[A-Z0-9]+$/i.test(formData.prn)) {
-      toast.error('Please enter a valid PRN (alphanumeric)');
+    // Validate PRN (9 digits only)
+    if (!/^\d{9}$/.test(formData.prn)) {
+      toast.error('Please enter a valid PRN (9 digits only)');
       return;
     }
 
@@ -200,13 +200,17 @@ export default function ProfileCompletion({ user }) {
               type="tel"
               name="phone"
               value={formData.phone}
-              onChange={handleChange}
-              placeholder="10-digit mobile number"
-              pattern="[0-9]{10,15}"
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                handleChange({ target: { name: 'phone', value } });
+              }}
+              placeholder="Enter 10-digit mobile number"
+              pattern="[0-9]{10}"
+              maxLength="10"
               required
               className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
-            <p className="text-xs text-slate-500 mt-1">10-15 digits</p>
+            <p className="text-xs text-slate-500 mt-1">Exactly 10 digits</p>
           </div>
 
           {/* PRN */}
@@ -218,12 +222,17 @@ export default function ProfileCompletion({ user }) {
               type="text"
               name="prn"
               value={formData.prn}
-              onChange={handleChange}
-              placeholder="e.g., 2024CS001"
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                handleChange({ target: { name: 'prn', value } });
+              }}
+              placeholder="e.g., 241101101"
+              pattern="[0-9]{9}"
+              maxLength="9"
               required
-              className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent uppercase"
+              className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
-            <p className="text-xs text-slate-500 mt-1">Alphanumeric, case-insensitive</p>
+            <p className="text-xs text-slate-500 mt-1">9 digits only</p>
           </div>
 
           {/* Submit Button */}
