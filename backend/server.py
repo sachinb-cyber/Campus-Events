@@ -93,7 +93,7 @@ class CertificateIssue(BaseModel):
 class AdminCreate(BaseModel):
     email: str
     name: str
-    password: str
+    password: Optional[str] = None
 
 class SystemConfigUpdate(BaseModel):
     colleges: Optional[List[str]] = None
