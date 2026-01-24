@@ -492,60 +492,59 @@ async def exchange_supabase(data: SupabaseTokenExchange, response: Response, req
     DEV_DISABLE_SECURE_COOKIE=true to allow the cookie to be set over HTTP.
     """
     try:
-        try:
-            logging.info(f"✓ exchange_supabase called")
-            access_token = data.access_token
-            if not access_token:
-                logging.error("✗ access_token not provided in request")
-                raise HTTPException(status_code=400, detail="access_token required")
+        logging.info(f"✓ exchange_supabase called")
+        access_token = data.access_token
+        if not access_token:
+            logging.error("✗ access_token not provided in request")
+            raise HTTPException(status_code=400, detail="access_token required")
 
-            supabase_url = os.environ.get("SUPABASE_URL")
-            if not supabase_url:
-                logging.error("✗ SUPABASE_URL not configured")
-                raise HTTPException(status_code=500, detail="SUPABASE_URL not configured on server")
+        supabase_url = os.environ.get("SUPABASE_URL")
+        if not supabase_url:
+            logging.error("✗ SUPABASE_URL not configured")
+            raise HTTPException(status_code=500, detail="SUPABASE_URL not configured on server")
 
-            supabase_anon_key = os.environ.get("SUPABASE_ANON_KEY")
-            if not supabase_anon_key:
-                logging.error("✗ SUPABASE_ANON_KEY not configured")
-                raise HTTPException(status_code=500, detail="SUPABASE_ANON_KEY not configured on server")
+        supabase_anon_key = os.environ.get("SUPABASE_ANON_KEY")
+        if not supabase_anon_key:
+            logging.error("✗ SUPABASE_ANON_KEY not configured")
+            raise HTTPException(status_code=500, detail="SUPABASE_ANON_KEY not configured on server")
 
-            logging.info(f"→ Verifying token with Supabase: {supabase_url}")
-            logging.info(f"Token preview: {access_token[:50]}...")
-            
-            # Verify token with Supabase
-            async with httpx.AsyncClient() as client:
-                try:
-                    resp = await client.get(
-                        f"{supabase_url.rstrip('/')}/auth/v1/user",
-                        headers={
-                            "Authorization": f"Bearer {access_token}",
-                            "apikey": supabase_anon_key
-                        },
-                        timeout=10.0
+        logging.info(f"→ Verifying token with Supabase: {supabase_url}")
+        logging.info(f"Token preview: {access_token[:50]}...")
+        
+        # Verify token with Supabase
+        async with httpx.AsyncClient() as client:
+            try:
+                resp = await client.get(
+                    f"{supabase_url.rstrip('/')}/auth/v1/user",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "apikey": supabase_anon_key
+                    },
+                    timeout=10.0
+                )
+                logging.info(f"Supabase response status: {resp.status_code}")
+                if resp.status_code != 200:
+                    response_text = resp.text[:500]
+                    logging.error(f"Supabase returned {resp.status_code}: {response_text}")
+                resp.raise_for_status()
+                supa_user = resp.json()
+                logging.info(f"Supabase user info retrieved: {supa_user.get('email')}")
+            except Exception as e:
+                logging.error(f"✗ Failed to verify supabase token: {str(e)}", exc_info=True)
+                
+                # Provide more helpful error message
+                error_msg = str(e)
+                if "401" in error_msg or "Unauthorized" in error_msg:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail="Token verification failed with Supabase. This usually means: 1) Google OAuth isn't enabled in your Supabase project, 2) Client ID/Secret is incorrect, or 3) Token is invalid. Check https://app.supabase.com > Authentication > Providers > Google"
                     )
-                    logging.info(f"Supabase response status: {resp.status_code}")
-                    if resp.status_code != 200:
-                        response_text = resp.text[:500]
-                        logging.error(f"Supabase returned {resp.status_code}: {response_text}")
-                    resp.raise_for_status()
-                    supa_user = resp.json()
-                    logging.info(f"Supabase user info retrieved: {supa_user.get('email')}")
-                except Exception as e:
-                    logging.error(f"✗ Failed to verify supabase token: {str(e)}", exc_info=True)
-                    
-                    # Provide more helpful error message
-                    error_msg = str(e)
-                    if "401" in error_msg or "Unauthorized" in error_msg:
-                        raise HTTPException(
-                            status_code=400, 
-                            detail="Token verification failed with Supabase. This usually means: 1) Google OAuth isn't enabled in your Supabase project, 2) Client ID/Secret is incorrect, or 3) Token is invalid. Check https://app.supabase.com > Authentication > Providers > Google"
-                        )
-                    else:
-                        raise HTTPException(status_code=400, detail=f"Failed to verify supabase token: {str(e)}")
+                else:
+                    raise HTTPException(status_code=400, detail=f"Failed to verify supabase token: {str(e)}")
 
-            email = supa_user.get("email")
-            if not email:
-                raise HTTPException(status_code=400, detail="Supabase user info missing email")
+        email = supa_user.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Supabase user info missing email")
 
         # Derive name and picture from user_metadata if available
         user_metadata = supa_user.get("user_metadata") or {}
