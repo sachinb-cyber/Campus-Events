@@ -712,18 +712,20 @@ async def get_profile_options():
 
 @api_router.post("/auth/complete-profile")
 async def complete_profile(profile: UserProfileUpdate, user: User = Depends(get_current_user)):
-    """Complete user profile after first login. Required fields: college, department, phone, prn."""
+    """Complete user profile after first login. Required fields: college, department, division, year, phone, prn."""
     # Validate required fields
-    if not profile.college or not profile.department or not profile.phone or not profile.prn:
+    if not profile.college or not profile.department or not profile.division or not profile.year or not profile.phone or not profile.prn:
         raise HTTPException(
             status_code=400, 
-            detail="College, department, phone, and PRN are required"
+            detail="College, department, division, year, phone, and PRN are required"
         )
     
     # Update user profile and mark as complete
     update_data = {
         "college": profile.college,
         "department": profile.department,
+        "division": profile.division,
+        "year": profile.year,
         "phone": profile.phone,
         "prn": profile.prn,
         "name": profile.name or user.name,  # Update name if provided
