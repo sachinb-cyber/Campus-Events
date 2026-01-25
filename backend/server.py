@@ -53,6 +53,7 @@ class User(BaseModel):
     phone: Optional[str] = None
     college: Optional[str] = None
     department: Optional[str] = None
+    division: Optional[str] = None
     year: Optional[str] = None
     prn: Optional[str] = None
     role: str = "user"
@@ -66,6 +67,7 @@ class UserProfileUpdate(BaseModel):
     phone: Optional[str] = None
     college: Optional[str] = None
     department: Optional[str] = None
+    division: Optional[str] = None
     year: Optional[str] = None
     prn: Optional[str] = None
 
@@ -699,11 +701,13 @@ async def update_profile(profile: UserProfileUpdate, user: User = Depends(get_cu
 
 @api_router.get("/auth/profile-options")
 async def get_profile_options():
-    """Get available colleges and departments for profile completion dropdown."""
+    """Get available colleges, departments, divisions, and years for profile completion dropdown."""
     config = await get_system_config()
     return {
         "colleges": config.get("colleges", []),
-        "departments": config.get("departments", [])
+        "departments": config.get("departments", []),
+        "divisions": config.get("divisions", []),
+        "years": config.get("years", [])
     }
 
 @api_router.post("/auth/complete-profile")
