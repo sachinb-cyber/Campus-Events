@@ -221,6 +221,30 @@ export default function SystemSettings() {
 
   const availableFields = ['name', 'email', 'phone', 'college', 'department', 'division', 'year', 'prn'];
 
+  const initializeDefaultDivisions = () => {
+    const defaultDivisions = ['AD1', 'AD2', 'AI', 'CE', 'CO1', 'CO2', 'CO3', 'DS1', 'DS2', 'EE', 'ET1', 'ET2', 'IT1', 'IT2', 'ME'];
+    const existingDivisions = config.divisions || [];
+    const newDivisions = defaultDivisions.filter(d => !existingDivisions.includes(d));
+    
+    setConfig({
+      ...config,
+      divisions: [...existingDivisions, ...newDivisions]
+    });
+    toast.success(`Added ${newDivisions.length} divisions`);
+  };
+
+  const initializeDefaultYears = () => {
+    const defaultYears = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+    const existingYears = config.years || [];
+    const newYears = defaultYears.filter(y => !existingYears.includes(y));
+    
+    setConfig({
+      ...config,
+      years: [...existingYears, ...newYears]
+    });
+    toast.success(`Added ${newYears.length} years`);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 pb-20 md:pb-8 md:pt-16">
       <div className="max-w-5xl mx-auto px-4 py-6">
@@ -348,9 +372,18 @@ export default function SystemSettings() {
 
             {/* Divisions */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-slate-900 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                Divisions
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  Divisions
+                </h2>
+                <button
+                  onClick={initializeDefaultDivisions}
+                  className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded font-medium transition-all"
+                  title="Add default divisions: AD1, AD2, AI, CE, CO1, CO2, CO3, DS1, DS2, EE, ET1, ET2, IT1, IT2, ME"
+                >
+                  + Load Defaults
+                </button>
+              </div>
               <div className="flex space-x-3 mb-4">
                 <input
                   type="text"
@@ -390,9 +423,18 @@ export default function SystemSettings() {
 
             {/* Years */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-slate-900 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                Years
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  Years
+                </h2>
+                <button
+                  onClick={initializeDefaultYears}
+                  className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded font-medium transition-all"
+                  title="Add default years: 1st Year, 2nd Year, 3rd Year, 4th Year"
+                >
+                  + Load Defaults
+                </button>
+              </div>
               <div className="flex space-x-3 mb-4">
                 <input
                   type="text"
