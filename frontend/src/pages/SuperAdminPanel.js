@@ -152,7 +152,7 @@ export default function SuperAdminPanel() {
           >
             <Shield className="w-8 h-8 mb-3" />
             <h3 className="font-bold text-lg mb-1">System Settings</h3>
-            <p className="text-sm text-blue-100">Configure colleges & departments</p>
+            <p className="text-sm text-blue-100">Configure colleges, departments & divisions</p>
           </button>
         </div>
 

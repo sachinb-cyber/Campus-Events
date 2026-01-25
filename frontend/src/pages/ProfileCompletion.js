@@ -10,11 +10,13 @@ export default function ProfileCompletion({ user }) {
   const [loading, setLoading] = useState(false);
   const [colleges, setColleges] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [divisions, setDivisions] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [formData, setFormData] = useState({
     name: user?.name || '',
     college: '',
     department: '',
+    division: '',
     phone: '',
     prn: ''
   });
@@ -32,6 +34,7 @@ export default function ProfileCompletion({ user }) {
       const data = await response.json();
       setColleges(data.colleges || []);
       setDepartments(data.departments || []);
+      setDivisions(data.divisions || []);
     } catch (error) {
       toast.error('Failed to load colleges and departments');
       console.error(error);
@@ -52,7 +55,7 @@ export default function ProfileCompletion({ user }) {
     e.preventDefault();
 
     // Validate required fields
-    if (!formData.college || !formData.department || !formData.phone || !formData.prn) {
+    if (!formData.college || !formData.department || !formData.division || !formData.phone || !formData.prn) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -79,6 +82,7 @@ export default function ProfileCompletion({ user }) {
           name: formData.name,
           college: formData.college,
           department: formData.department,
+          division: formData.division,
           phone: formData.phone,
           prn: formData.prn
         })
@@ -186,6 +190,27 @@ export default function ProfileCompletion({ user }) {
               {departments.map((dept) => (
                 <option key={dept} value={dept}>
                   {dept}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Division */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Division *
+            </label>
+            <select
+              name="division"
+              value={formData.division}
+              onChange={handleChange}
+              required
+              className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="">Select your division</option>
+              {divisions.map((div) => (
+                <option key={div} value={div}>
+                  {div}
                 </option>
               ))}
             </select>

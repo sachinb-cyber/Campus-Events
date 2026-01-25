@@ -8,6 +8,7 @@ export default function SystemSettings() {
   const [config, setConfig] = useState({
     colleges: [],
     departments: [],
+    divisions: [],
     popup_enabled: false,
     popup_type: 'instagram',
     popup_content: {},
@@ -35,6 +36,7 @@ export default function SystemSettings() {
   const [saving, setSaving] = useState(false);
   const [newCollege, setNewCollege] = useState('');
   const [newDepartment, setNewDepartment] = useState('');
+  const [newDivision, setNewDivision] = useState('');
 
   useEffect(() => {
     fetchConfig();
@@ -114,6 +116,26 @@ export default function SystemSettings() {
     });
   };
 
+  const addDivision = () => {
+    if (!newDivision.trim()) return;
+    if (config.divisions.includes(newDivision.trim())) {
+      toast.error('Division already exists');
+      return;
+    }
+    setConfig({
+      ...config,
+      divisions: [...config.divisions, newDivision.trim()]
+    });
+    setNewDivision('');
+  };
+
+  const removeDivision = (division) => {
+    setConfig({
+      ...config,
+      divisions: config.divisions.filter(d => d !== division)
+    });
+  };
+
   const toggleRequiredField = (field) => {
     const fields = config.required_fields || [];
     if (fields.includes(field)) {
@@ -129,7 +151,7 @@ export default function SystemSettings() {
     }
   };
 
-  const availableFields = ['name', 'email', 'phone', 'college', 'department', 'year', 'prn'];
+  const availableFields = ['name', 'email', 'phone', 'college', 'department', 'division', 'year', 'prn'];
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20 md:pb-8 md:pt-16">
@@ -238,6 +260,48 @@ export default function SystemSettings() {
                 ))}
                 {config.departments.length === 0 && (
                   <p className="text-sm text-slate-500 text-center py-4">No departments added yet</p>
+                )}
+              </div>
+            </div>
+
+            {/* Divisions */}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-slate-900 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                Divisions
+              </h2>
+              <div className="flex space-x-3 mb-4">
+                <input
+                  type="text"
+                  value={newDivision}
+                  onChange={(e) => setNewDivision(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addDivision()}
+                  data-testid="division-input"
+                  placeholder="Enter division name (e.g., A, B, C)"
+                  className="flex-1 h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  onClick={addDivision}
+                  data-testid="add-division"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-3 font-semibold transition-all flex items-center space-x-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>Add</span>
+                </button>
+              </div>
+              <div className="space-y-2">
+                {config.divisions.map((div, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-slate-50 rounded-lg p-3" data-testid={`division-${idx}`}>
+                    <span className="text-slate-900">{div}</span>
+                    <button
+                      onClick={() => removeDivision(div)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {config.divisions.length === 0 && (
+                  <p className="text-sm text-slate-500 text-center py-4">No divisions added yet</p>
                 )}
               </div>
             </div>
