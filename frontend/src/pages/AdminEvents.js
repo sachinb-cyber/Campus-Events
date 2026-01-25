@@ -745,6 +745,18 @@ function ExtendedEventFormModal({ onClose, onSuccess }) {
                   className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Registration Fee (₹)</label>
+                <input
+                  type="number"
+                  value={eventData.registration_fee || 0}
+                  onChange={(e) => handleEventChange('registration_fee', e.target.value)}
+                  min="0"
+                  step="10"
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  placeholder="0"
+                />
+              </div>
             </div>
           </div>
 

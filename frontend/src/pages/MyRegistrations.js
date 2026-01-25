@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, CheckCircle, Clock } from 'lucide-react';
+import { Calendar, MapPin, Users, CheckCircle, Clock, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -65,6 +65,7 @@ export default function MyRegistrations() {
 
 function RegistrationCard({ registration }) {
   const event = registration.event;
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   if (!event) return null;
 
   const eventDate = new Date(event.event_date);
@@ -188,15 +189,71 @@ function RegistrationCard({ registration }) {
             {event.is_paid ? registration.payment_status : 'Free'}
           </span>
         </div>
-        {registration.status === 'active' && (
+        <div className="flex gap-2">
+          {(registration.custom_fields && Object.keys(registration.custom_fields).length > 0) && (
+            <button
+              onClick={() => setShowDetailsModal(true)}
+              className="bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg px-4 py-2 text-sm font-medium transition-all flex items-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              View Responses
+            </button>
+          )}
+          {registration.status === 'active' && (
+            <button
+              onClick={handleRequestCancellation}
+              data-testid="request-cancellation-button"
+              className="bg-red-50 hover:bg-red-100 text-red-700 rounded-lg px-4 py-2 text-sm font-medium transition-all"
+            >
+              Request Cancellation
+            </button>
+          )}
+        </div>
+      </div>
+
+      {showDetailsModal && (
+        <RegistrationResponsesModal registration={registration} onClose={() => setShowDetailsModal(false)} />
+      )}
+    </div>
+  );
+}
+
+function RegistrationResponsesModal({ registration, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-white border-b border-slate-200 p-6">
+          <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+            Your Form Responses
+          </h2>
+          <p className="text-sm text-slate-600 mt-1">{registration.event?.title}</p>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {registration.custom_fields && Object.keys(registration.custom_fields).length > 0 ? (
+            Object.entries(registration.custom_fields).map(([key, value]) => (
+              <div key={key} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <label className="block text-xs font-medium text-slate-600 uppercase mb-2">{key}</label>
+                <p className="text-slate-900 break-words whitespace-pre-wrap font-medium">
+                  {typeof value === 'object' ? JSON.stringify(value) : value || '-'}
+                </p>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-slate-600">No form responses to display</p>
+            </div>
+          )}
+        </div>
+
+        <div className="sticky bottom-0 bg-white border-t border-slate-200 p-6">
           <button
-            onClick={handleRequestCancellation}
-            data-testid="request-cancellation-button"
-            className="bg-red-50 hover:bg-red-100 text-red-700 rounded-lg px-4 py-2 text-sm font-medium transition-all"
+            onClick={onClose}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-3 font-semibold transition-all"
           >
-            Request Cancellation
+            Close
           </button>
-        )}
+        </div>
       </div>
     </div>
   );

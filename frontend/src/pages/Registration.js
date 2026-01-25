@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -19,6 +19,7 @@ export default function Registration() {
   const [teamMembers, setTeamMembers] = useState([
     { name: '', email: '', phone: '', college: '', department: '', year: '', prn: '' }
   ]);
+  const [customFormData, setCustomFormData] = useState({});
 
   const fetchUserAndEvent = useCallback(async () => {
     try {
@@ -96,6 +97,19 @@ export default function Registration() {
         }
         payload.team_name = teamName;
         payload.team_members = teamMembers;
+      }
+
+      // Include custom form data if event has custom fields
+      if (event.custom_fields && event.custom_fields.length > 0) {
+        // Validate required custom fields
+        for (const field of event.custom_fields) {
+          if (field.required && !customFormData[field.id]) {
+            toast.error(`Please fill in required field: ${field.label}`);
+            setSubmitting(false);
+            return;
+          }
+        }
+        payload.custom_fields = customFormData;
       }
 
       const response = await fetch(`${BACKEND_URL}/api/registrations`, {
@@ -330,7 +344,30 @@ export default function Registration() {
               </div>
             )}
 
-            <button
+            {event.custom_fields && event.custom_fields.length > 0 && (
+              <div className="border-t border-slate-200 pt-6">
+                <h2 className="text-xl font-bold text-slate-900 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  Additional Information
+                </h2>
+                <div className="space-y-4">
+                  {event.custom_fields.map((field) => (
+                    <CustomFormField
+                      key={field.id}
+                      field={field}
+                      value={customFormData[field.id] || ''}
+                      onChange={(value) => setCustomFormData({...customFormData, [field.id]: value})}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {event.registration_fee > 0 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <p className="text-sm font-medium text-slate-700">Registration Fee</p>
+                <p className="text-2xl font-bold text-orange-600">₹ {event.registration_fee}</p>
+              </div>
+            )}
               type="submit"
               disabled={submitting}
               data-testid="submit-registration-button"
@@ -343,4 +380,189 @@ export default function Registration() {
       </div>
     </div>
   );
+}
+
+function CustomFormField({ field, value, onChange }) {
+  if (field.type === 'text') {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          {field.label} {field.required && <span className="text-red-600">*</span>}
+        </label>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={field.required}
+          className="w-full h-10 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        />
+      </div>
+    );
+  }
+
+  if (field.type === 'textarea') {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          {field.label} {field.required && <span className="text-red-600">*</span>}
+        </label>
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={field.required}
+          rows={3}
+          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        />
+      </div>
+    );
+  }
+
+  if (field.type === 'number') {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          {field.label} {field.required && <span className="text-red-600">*</span>}
+        </label>
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={field.required}
+          className="w-full h-10 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        />
+      </div>
+    );
+  }
+
+  if (field.type === 'email') {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          {field.label} {field.required && <span className="text-red-600">*</span>}
+        </label>
+        <input
+          type="email"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={field.required}
+          className="w-full h-10 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        />
+      </div>
+    );
+  }
+
+  if (field.type === 'phone') {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          {field.label} {field.required && <span className="text-red-600">*</span>}
+        </label>
+        <input
+          type="tel"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={field.required}
+          className="w-full h-10 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        />
+      </div>
+    );
+  }
+
+  if (field.type === 'date') {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          {field.label} {field.required && <span className="text-red-600">*</span>}
+        </label>
+        <input
+          type="date"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={field.required}
+          className="w-full h-10 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        />
+      </div>
+    );
+  }
+
+  if (field.type === 'checkbox') {
+    return (
+      <div className="flex items-center space-x-3">
+        <input
+          type="checkbox"
+          checked={value === true || value === 'true'}
+          onChange={(e) => onChange(e.target.checked)}
+          className="w-4 h-4 rounded border-slate-300 text-indigo-600"
+        />
+        <label className="text-sm font-medium text-slate-700">
+          {field.label} {field.required && <span className="text-red-600">*</span>}
+        </label>
+      </div>
+    );
+  }
+
+  if (field.type === 'radio') {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          {field.label} {field.required && <span className="text-red-600">*</span>}
+        </label>
+        <div className="space-y-2">
+          {(field.options || []).map((option, idx) => (
+            <label key={idx} className="flex items-center space-x-3">
+              <input
+                type="radio"
+                name={field.id}
+                value={option}
+                checked={value === option}
+                onChange={(e) => onChange(e.target.value)}
+                required={field.required}
+                className="w-4 h-4 rounded-full border-slate-300 text-indigo-600"
+              />
+              <span className="text-slate-700">{option}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (field.type === 'select') {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          {field.label} {field.required && <span className="text-red-600">*</span>}
+        </label>
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={field.required}
+          className="w-full h-10 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        >
+          <option value="">Select an option</option>
+          {(field.options || []).map((option, idx) => (
+            <option key={idx} value={option}>{option}</option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  if (field.type === 'file') {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          {field.label} {field.required && <span className="text-red-600">*</span>}
+        </label>
+        <input
+          type="file"
+          onChange={(e) => onChange(e.target.files?.[0]?.name || '')}
+          required={field.required}
+          className="w-full h-10 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        />
+      </div>
+    );
+  }
+
+  return null;
 }
