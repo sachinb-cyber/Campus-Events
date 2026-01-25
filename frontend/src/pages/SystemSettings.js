@@ -35,6 +35,7 @@ export default function SystemSettings() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
   const [newCollege, setNewCollege] = useState('');
   const [newDepartment, setNewDepartment] = useState('');
   const [newDivision, setNewDivision] = useState('');
@@ -50,18 +51,45 @@ export default function SystemSettings() {
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to load config');
-      const data = await response.json();
-      // Ensure arrays exist
-      if (!data.divisions) {
-        data.divisions = [];
-      }
-      if (!data.years) {
-        data.years = [];
-      }
+      let data = await response.json();
+      
+      // Ensure all required arrays and objects exist
+      data = {
+        colleges: Array.isArray(data.colleges) ? data.colleges : [],
+        departments: Array.isArray(data.departments) ? data.departments : [],
+        divisions: Array.isArray(data.divisions) ? data.divisions : [],
+        years: Array.isArray(data.years) ? data.years : [],
+        popup_enabled: data.popup_enabled || false,
+        popup_type: data.popup_type || 'instagram',
+        popup_content: data.popup_content || {},
+        required_fields: Array.isArray(data.required_fields) ? data.required_fields : [],
+        social_links: data.social_links || {
+          instagram: '',
+          facebook: '',
+          whatsapp: '',
+          linkedin: '',
+          twitter: '',
+          youtube: '',
+          website: ''
+        },
+        support_email: data.support_email || '',
+        support_phone: data.support_phone || '',
+        help_link: data.help_link || '',
+        terms_link: data.terms_link || '',
+        privacy_link: data.privacy_link || '',
+        about_link: data.about_link || '',
+        event_registration_enabled: data.event_registration_enabled !== false,
+        max_team_size: data.max_team_size || 5,
+        custom_footer_text: data.custom_footer_text || ''
+      };
+      
       setConfig(data);
+      setError(null);
     } catch (error) {
-      toast.error('Failed to load settings');
+      const errorMsg = 'Failed to load settings';
+      toast.error(errorMsg);
       console.error(error);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -76,11 +104,19 @@ export default function SystemSettings() {
         credentials: 'include',
         body: JSON.stringify(config)
       });
-      if (!response.ok) throw new Error('Failed to save');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to save');
+      }
       toast.success('Settings saved successfully');
-      fetchConfig();
+      setError(null);
+      // Fetch the updated config to refresh
+      await fetchConfig();
     } catch (error) {
-      toast.error('Failed to save settings');
+      console.error('Save error:', error);
+      const errorMsg = error.message || 'Failed to save settings';
+      toast.error(errorMsg);
+      setError(errorMsg);
     } finally {
       setSaving(false);
     }
@@ -209,6 +245,20 @@ export default function SystemSettings() {
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 mb-8">
+            <p className="text-red-800 font-medium">{error}</p>
+            <button
+              onClick={() => {
+                setLoading(true);
+                setError(null);
+                fetchConfig();
+              }}
+              className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all"
+            >
+              Try Again
+            </button>
           </div>
         ) : (
           <div className="space-y-6">
