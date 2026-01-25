@@ -368,6 +368,8 @@ export default function Registration() {
                 <p className="text-2xl font-bold text-orange-600">₹ {event.registration_fee}</p>
               </div>
             )}
+
+            <button
               type="submit"
               disabled={submitting}
               data-testid="submit-registration-button"
