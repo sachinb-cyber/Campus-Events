@@ -15,6 +15,7 @@ export default function UserProfile() {
     phone: '',
     college: '',
     department: '',
+    division: '',
     year: '',
     prn: ''
   });
@@ -35,6 +36,7 @@ export default function UserProfile() {
           phone: userData.phone || '',
           college: userData.college || '',
           department: userData.department || '',
+          division: userData.division || '',
           year: userData.year || '',
           prn: userData.prn || ''
         });
@@ -53,6 +55,7 @@ export default function UserProfile() {
           phone: userData.phone || '',
           college: userData.college || '',
           department: userData.department || '',
+          division: userData.division || '',
           year: userData.year || '',
           prn: userData.prn || ''
         });
@@ -82,6 +85,7 @@ export default function UserProfile() {
         phone: data.phone || '',
         college: data.college || '',
         department: data.department || '',
+        division: data.division || '',
         year: data.year || '',
         prn: data.prn || ''
       });
@@ -224,6 +228,17 @@ export default function UserProfile() {
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                   data-testid="department-input"
+                  className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Division</label>
+                <input
+                  type="text"
+                  value={formData.division}
+                  onChange={(e) => setFormData({ ...formData, division: e.target.value })}
+                  data-testid="division-input"
                   className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>

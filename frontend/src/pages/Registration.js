@@ -14,11 +14,11 @@ export default function Registration() {
   const [submitting, setSubmitting] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [singleUserData, setSingleUserData] = useState({
-    name: '', phone: '', college: '', department: '', year: '', prn: '', email: ''
+    name: '', phone: '', college: '', department: '', division: '', year: '', prn: '', email: ''
   });
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [teamMembers, setTeamMembers] = useState([
-    { name: '', email: '', phone: '', college: '', department: '', year: '', prn: '' }
+    { name: '', email: '', phone: '', college: '', department: '', division: '', year: '', prn: '' }
   ]);
   const [customFormData, setCustomFormData] = useState({});
 
@@ -37,12 +37,13 @@ export default function Registration() {
           phone: userData.phone || '',
           college: userData.college || '',
           department: userData.department || '',
+          division: userData.division || '',
           year: userData.year || '',
           prn: userData.prn || '',
           email: userData.email || ''
         });
         // Check if profile is complete
-        const profileComplete = userData.name && userData.college && userData.department && userData.year;
+        const profileComplete = userData.name && userData.college && userData.department && userData.division && userData.year;
         setIsProfileComplete(profileComplete);
       }
 
@@ -321,6 +322,12 @@ export default function Registration() {
                     <label className="block text-sm font-medium text-slate-700 mb-2">Department</label>
                     <div className="w-full h-12 px-4 bg-slate-100 border border-slate-200 rounded-lg flex items-center text-slate-700">
                       {singleUserData.department || '(Not set)'}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Division</label>
+                    <div className="w-full h-12 px-4 bg-slate-100 border border-slate-200 rounded-lg flex items-center text-slate-700">
+                      {singleUserData.division || '(Not set)'}
                     </div>
                   </div>
                   <div>

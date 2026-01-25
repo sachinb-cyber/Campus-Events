@@ -415,6 +415,14 @@ function RegistrationDetailsModal({ registration, onClose }) {
                 <p className="text-slate-900 font-medium">{registration.user?.branch || '-'}</p>
               </div>
               <div>
+                <label className="text-xs font-medium text-slate-600 uppercase">Department</label>
+                <p className="text-slate-900 font-medium">{registration.user?.department || '-'}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 uppercase">Division</label>
+                <p className="text-slate-900 font-medium">{registration.user?.division || '-'}</p>
+              </div>
+              <div>
                 <label className="text-xs font-medium text-slate-600 uppercase">Year</label>
                 <p className="text-slate-900 font-medium">{registration.user?.year || '-'}</p>
               </div>
