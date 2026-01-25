@@ -102,16 +102,6 @@ export default function AdminEvents() {
             <p className="text-slate-600">Create, edit, and manage all events</p>
           </div>
           <div className="flex gap-2">
-            {user?.role === 'superadmin' && (
-              <button
-                onClick={handleCreateExtended}
-                data-testid="create-extended-event-button"
-                className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-6 py-3 font-semibold shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center space-x-2"
-              >
-                <Settings className="w-5 h-5" />
-                <span className="hidden md:inline">Extended Form</span>
-              </button>
-            )}
             <button
               onClick={handleCreate}
               data-testid="create-event-button"
@@ -150,32 +140,19 @@ export default function AdminEvents() {
       </div>
 
       {showModal && (
-        useExtendedForm ? (
-          <ExtendedEventFormModal
-            onClose={() => {
-              setShowModal(false);
-              setUseExtendedForm(false);
-            }}
-            onSuccess={() => {
-              setShowModal(false);
-              setUseExtendedForm(false);
-              fetchEvents();
-            }}
-          />
-        ) : (
-          <EventModal
-            event={editingEvent}
-            onClose={() => {
-              setShowModal(false);
-              setEditingEvent(null);
-            }}
-            onSuccess={() => {
-              setShowModal(false);
-              setEditingEvent(null);
-              fetchEvents();
-            }}
-          />
-        )
+        <EventModal
+          event={editingEvent}
+          onClose={() => {
+            setShowModal(false);
+            setEditingEvent(null);
+          }}
+          onSuccess={() => {
+            setShowModal(false);
+            setEditingEvent(null);
+            fetchEvents();
+          }}
+          isSuperAdmin={user?.role === 'superadmin'}
+        />
       )}
     </div>
   );
@@ -239,7 +216,7 @@ function EventRow({ event, onEdit, onDelete }) {
   );
 }
 
-function EventModal({ event, onClose, onSuccess }) {
+function EventModal({ event, onClose, onSuccess, isSuperAdmin }) {
   const [formData, setFormData] = useState({
     title: event?.title || '',
     description: event?.description || '',
@@ -252,9 +229,14 @@ function EventModal({ event, onClose, onSuccess }) {
     rules: event?.rules || '',
     organizer_info: event?.organizer_info || '',
     status: event?.status || 'active',
-    is_paid: event?.is_paid || false
+    is_paid: event?.is_paid || false,
+    registration_fee: event?.registration_fee || 0,
+    custom_fields: event?.custom_fields || []
   });
   const [submitting, setSubmitting] = useState(false);
+  const [showCustomFields, setShowCustomFields] = useState(event?.custom_fields?.length > 0 || false);
+  const [nextFieldId, setNextFieldId] = useState(event?.custom_fields?.length > 0 ? Math.max(...event.custom_fields.map(f => f.id)) + 1 : 1);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -263,7 +245,8 @@ function EventModal({ event, onClose, onSuccess }) {
     try {
       const payload = {
         ...formData,
-        team_size: formData.event_type === 'team' ? parseInt(formData.team_size) : null
+        team_size: formData.event_type === 'team' ? parseInt(formData.team_size) : null,
+        registration_fee: parseInt(formData.registration_fee) || 0
       };
 
       const url = event
@@ -287,6 +270,99 @@ function EventModal({ event, onClose, onSuccess }) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleAddField = () => {
+    const newField = {
+      id: nextFieldId,
+      label: `Field ${nextFieldId}`,
+      type: 'text',
+      required: false,
+      options: []
+    };
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: [...prev.custom_fields, newField]
+    }));
+    setNextFieldId(nextFieldId + 1);
+  };
+
+  const handleUpdateField = (fieldId, key, value) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.map(field =>
+        field.id === fieldId ? { ...field, [key]: value } : field
+      )
+    }));
+  };
+
+  const handleDeleteField = (fieldId) => {
+    if (formData.custom_fields.length === 1) {
+      toast.error('Event must have at least one field');
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.filter(field => field.id !== fieldId)
+    }));
+  };
+
+  const handleDuplicateField = (fieldId) => {
+    const fieldToDuplicate = formData.custom_fields.find(f => f.id === fieldId);
+    if (!fieldToDuplicate) return;
+
+    const newField = {
+      ...JSON.parse(JSON.stringify(fieldToDuplicate)),
+      id: nextFieldId,
+      label: `${fieldToDuplicate.label} (Copy)`
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: [...prev.custom_fields, newField]
+    }));
+    setNextFieldId(nextFieldId + 1);
+  };
+
+  const handleAddOption = (fieldId) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.map(field =>
+        field.id === fieldId
+          ? { ...field, options: [...(field.options || []), ''] }
+          : field
+      )
+    }));
+  };
+
+  const handleUpdateOption = (fieldId, optionIndex, value) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.map(field =>
+        field.id === fieldId
+          ? {
+              ...field,
+              options: field.options.map((opt, idx) =>
+                idx === optionIndex ? value : opt
+              )
+            }
+          : field
+      )
+    }));
+  };
+
+  const handleRemoveOption = (fieldId, optionIndex) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.map(field =>
+        field.id === fieldId
+          ? {
+              ...field,
+              options: field.options.filter((_, idx) => idx !== optionIndex)
+            }
+          : field
+      )
+    }));
   };
 
   return (
@@ -443,27 +519,86 @@ function EventModal({ event, onClose, onSuccess }) {
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-2">Registration Fee</label>
-              <div className="flex items-center space-x-4">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    checked={!formData.is_paid}
-                    onChange={() => setFormData({ ...formData, is_paid: false })}
-                    className="w-4 h-4 text-indigo-600"
-                  />
-                  <span className="text-slate-700">Free</span>
-                </label>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    checked={formData.is_paid}
-                    onChange={() => setFormData({ ...formData, is_paid: true })}
-                    className="w-4 h-4 text-indigo-600"
-                  />
-                  <span className="text-slate-700">Paid</span>
-                </label>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      checked={!formData.is_paid}
+                      onChange={() => setFormData({ ...formData, is_paid: false, registration_fee: 0 })}
+                      className="w-4 h-4 text-indigo-600"
+                    />
+                    <span className="text-slate-700">Free</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      checked={formData.is_paid}
+                      onChange={() => setFormData({ ...formData, is_paid: true })}
+                      className="w-4 h-4 text-indigo-600"
+                    />
+                    <span className="text-slate-700">Paid</span>
+                  </label>
+                </div>
+                {formData.is_paid && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Fee Amount (₹)</label>
+                    <input
+                      type="number"
+                      value={formData.registration_fee}
+                      onChange={(e) => setFormData({ ...formData, registration_fee: e.target.value })}
+                      min="0"
+                      step="10"
+                      className="w-full h-10 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                      placeholder="0"
+                    />
+                  </div>
+                )}
               </div>
             </div>
+
+            {isSuperAdmin && (
+              <div className="md:col-span-2 border-t border-slate-200 pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-slate-900">Custom Form Fields (Optional)</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomFields(!showCustomFields)}
+                    className="text-sm px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-all"
+                  >
+                    {showCustomFields ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                {showCustomFields && (
+                  <div className="space-y-4">
+                    <p className="text-xs text-slate-600">Add custom registration form fields. Users will be asked to fill these when registering.</p>
+                    <div className="space-y-3">
+                      {formData.custom_fields.map((field, index) => (
+                        <FieldEditor
+                          key={field.id}
+                          field={field}
+                          index={index}
+                          onUpdate={handleUpdateField}
+                          onDelete={handleDeleteField}
+                          onDuplicate={handleDuplicateField}
+                          onAddOption={handleAddOption}
+                          onUpdateOption={handleUpdateOption}
+                          onRemoveOption={handleRemoveOption}
+                        />
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddField}
+                      className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Field
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex space-x-3 pt-4">
@@ -482,343 +617,6 @@ function EventModal({ event, onClose, onSuccess }) {
               className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-3 font-semibold shadow-lg transition-all disabled:opacity-50"
             >
               {submitting ? 'Saving...' : event ? 'Update Event' : 'Create Event'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function ExtendedEventFormModal({ onClose, onSuccess }) {
-  const [loading, setLoading] = useState(false);
-  const [eventData, setEventData] = useState({
-    title: '',
-    description: '',
-    event_type: 'single',
-    team_size: 2,
-    event_date: '',
-    deadline: '',
-    category: 'Technical',
-    venue: '',
-    rules: '',
-    organizer_info: '',
-    is_paid: false,
-    custom_fields: [
-      { id: 1, label: 'Name', type: 'text', required: true, options: [] }
-    ]
-  });
-
-  const [nextFieldId, setNextFieldId] = useState(2);
-  const [showPreview, setShowPreview] = useState(false);
-
-  const handleEventChange = (field, value) => {
-    setEventData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleAddField = () => {
-    const newField = {
-      id: nextFieldId,
-      label: `Field ${nextFieldId}`,
-      type: 'text',
-      required: false,
-      options: []
-    };
-    setEventData(prev => ({
-      ...prev,
-      custom_fields: [...prev.custom_fields, newField]
-    }));
-    setNextFieldId(nextFieldId + 1);
-  };
-
-  const handleUpdateField = (fieldId, key, value) => {
-    setEventData(prev => ({
-      ...prev,
-      custom_fields: prev.custom_fields.map(field =>
-        field.id === fieldId ? { ...field, [key]: value } : field
-      )
-    }));
-  };
-
-  const handleDeleteField = (fieldId) => {
-    if (eventData.custom_fields.length === 1) {
-      toast.error('Event must have at least one field');
-      return;
-    }
-    setEventData(prev => ({
-      ...prev,
-      custom_fields: prev.custom_fields.filter(field => field.id !== fieldId)
-    }));
-  };
-
-  const handleDuplicateField = (fieldId) => {
-    const fieldToDuplicate = eventData.custom_fields.find(f => f.id === fieldId);
-    if (!fieldToDuplicate) return;
-
-    const newField = {
-      ...JSON.parse(JSON.stringify(fieldToDuplicate)),
-      id: nextFieldId,
-      label: `${fieldToDuplicate.label} (Copy)`
-    };
-
-    setEventData(prev => ({
-      ...prev,
-      custom_fields: [...prev.custom_fields, newField]
-    }));
-    setNextFieldId(nextFieldId + 1);
-  };
-
-  const handleAddOption = (fieldId) => {
-    setEventData(prev => ({
-      ...prev,
-      custom_fields: prev.custom_fields.map(field =>
-        field.id === fieldId
-          ? { ...field, options: [...(field.options || []), ''] }
-          : field
-      )
-    }));
-  };
-
-  const handleUpdateOption = (fieldId, optionIndex, value) => {
-    setEventData(prev => ({
-      ...prev,
-      custom_fields: prev.custom_fields.map(field =>
-        field.id === fieldId
-          ? {
-              ...field,
-              options: field.options.map((opt, idx) =>
-                idx === optionIndex ? value : opt
-              )
-            }
-          : field
-      )
-    }));
-  };
-
-  const handleRemoveOption = (fieldId, optionIndex) => {
-    setEventData(prev => ({
-      ...prev,
-      custom_fields: prev.custom_fields.map(field =>
-        field.id === fieldId
-          ? {
-              ...field,
-              options: field.options.filter((_, idx) => idx !== optionIndex)
-            }
-          : field
-      )
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const payload = {
-        ...eventData,
-        team_size: eventData.event_type === 'team' ? parseInt(eventData.team_size) : null
-      };
-
-      const response = await fetch(`${BACKEND_URL}/api/events`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to create event');
-      }
-
-      toast.success('Event with extended form created successfully!');
-      onSuccess();
-    } catch (error) {
-      toast.error(error.message || 'Failed to create event');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-slate-200 p-6">
-          <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            Create Event with Extended Form
-          </h2>
-          <p className="text-sm text-slate-600 mt-1">Design custom registration forms like Google Forms</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-8">
-          {/* Event Basic Details */}
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 mb-4">Event Details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-2">Title *</label>
-                <input
-                  type="text"
-                  value={eventData.title}
-                  onChange={(e) => handleEventChange('title', e.target.value)}
-                  required
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-2">Description *</label>
-                <textarea
-                  value={eventData.description}
-                  onChange={(e) => handleEventChange('description', e.target.value)}
-                  required
-                  rows={2}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Event Type *</label>
-                <select
-                  value={eventData.event_type}
-                  onChange={(e) => handleEventChange('event_type', e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                >
-                  <option value="single">Single Participant</option>
-                  <option value="team">Team</option>
-                </select>
-              </div>
-              {eventData.event_type === 'team' && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Team Size *</label>
-                  <input
-                    type="number"
-                    value={eventData.team_size}
-                    onChange={(e) => handleEventChange('team_size', e.target.value)}
-                    min="2"
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                  />
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Event Date *</label>
-                <input
-                  type="datetime-local"
-                  value={eventData.event_date}
-                  onChange={(e) => handleEventChange('event_date', e.target.value)}
-                  required
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Deadline *</label>
-                <input
-                  type="datetime-local"
-                  value={eventData.deadline}
-                  onChange={(e) => handleEventChange('deadline', e.target.value)}
-                  required
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Category *</label>
-                <select
-                  value={eventData.category}
-                  onChange={(e) => handleEventChange('category', e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                >
-                  <option value="Technical">Technical</option>
-                  <option value="Cultural">Cultural</option>
-                  <option value="Sports">Sports</option>
-                  <option value="Workshop">Workshop</option>
-                  <option value="Seminar">Seminar</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Venue *</label>
-                <input
-                  type="text"
-                  value={eventData.venue}
-                  onChange={(e) => handleEventChange('venue', e.target.value)}
-                  required
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Registration Fee (₹)</label>
-                <input
-                  type="number"
-                  value={eventData.registration_fee || 0}
-                  onChange={(e) => handleEventChange('registration_fee', e.target.value)}
-                  min="0"
-                  step="10"
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Custom Fields Form Builder */}
-          <div className="border-t border-slate-200 pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-900">Registration Form Fields</h3>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowPreview(!showPreview)}
-                  className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg font-medium transition-all text-sm"
-                >
-                  <FileText className="w-4 h-4" />
-                  {showPreview ? 'Edit' : 'Preview'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddField}
-                  className="flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-all text-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Field
-                </button>
-              </div>
-            </div>
-
-            {showPreview ? (
-              <ExtendedFormPreview fields={eventData.custom_fields} />
-            ) : (
-              <div className="space-y-3">
-                {eventData.custom_fields.map((field, index) => (
-                  <ExtendedFieldEditor
-                    key={field.id}
-                    field={field}
-                    index={index}
-                    onUpdate={handleUpdateField}
-                    onDelete={handleDeleteField}
-                    onDuplicate={handleDuplicateField}
-                    onAddOption={handleAddOption}
-                    onUpdateOption={handleUpdateOption}
-                    onRemoveOption={handleRemoveOption}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg px-6 py-3 font-semibold transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-3 font-semibold shadow-lg transition-all disabled:opacity-50"
-            >
-              {loading ? 'Creating...' : 'Create Event'}
             </button>
           </div>
         </form>
@@ -935,7 +733,7 @@ function ExtendedFieldEditor({
   );
 }
 
-function ExtendedFormPreview({ fields }) {
+function FormPreview({ fields }) {
   return (
     <div className="bg-slate-100 rounded-lg p-6 space-y-4 border-2 border-indigo-200">
       <p className="text-xs text-slate-600 text-center">Live Preview</p>
