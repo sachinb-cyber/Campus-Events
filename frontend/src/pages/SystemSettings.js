@@ -9,6 +9,7 @@ export default function SystemSettings() {
     colleges: [],
     departments: [],
     divisions: [],
+    years: [],
     popup_enabled: false,
     popup_type: 'instagram',
     popup_content: {},
@@ -37,6 +38,7 @@ export default function SystemSettings() {
   const [newCollege, setNewCollege] = useState('');
   const [newDepartment, setNewDepartment] = useState('');
   const [newDivision, setNewDivision] = useState('');
+  const [newYear, setNewYear] = useState('');
 
   useEffect(() => {
     fetchConfig();
@@ -49,9 +51,17 @@ export default function SystemSettings() {
       });
       if (!response.ok) throw new Error('Failed to load config');
       const data = await response.json();
+      // Ensure arrays exist
+      if (!data.divisions) {
+        data.divisions = [];
+      }
+      if (!data.years) {
+        data.years = [];
+      }
       setConfig(data);
     } catch (error) {
       toast.error('Failed to load settings');
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -118,13 +128,14 @@ export default function SystemSettings() {
 
   const addDivision = () => {
     if (!newDivision.trim()) return;
-    if (config.divisions.includes(newDivision.trim())) {
+    const divisionsList = config.divisions || [];
+    if (divisionsList.includes(newDivision.trim())) {
       toast.error('Division already exists');
       return;
     }
     setConfig({
       ...config,
-      divisions: [...config.divisions, newDivision.trim()]
+      divisions: [...divisionsList, newDivision.trim()]
     });
     setNewDivision('');
   };
@@ -132,7 +143,28 @@ export default function SystemSettings() {
   const removeDivision = (division) => {
     setConfig({
       ...config,
-      divisions: config.divisions.filter(d => d !== division)
+      divisions: (config.divisions || []).filter(d => d !== division)
+    });
+  };
+
+  const addYear = () => {
+    if (!newYear.trim()) return;
+    const yearsList = config.years || [];
+    if (yearsList.includes(newYear.trim())) {
+      toast.error('Year already exists');
+      return;
+    }
+    setConfig({
+      ...config,
+      years: [...yearsList, newYear.trim()]
+    });
+    setNewYear('');
+  };
+
+  const removeYear = (year) => {
+    setConfig({
+      ...config,
+      years: (config.years || []).filter(y => y !== year)
     });
   };
 
@@ -205,7 +237,7 @@ export default function SystemSettings() {
                 </button>
               </div>
               <div className="space-y-2">
-                {config.colleges.map((college, idx) => (
+                {(config.colleges || []).map((college, idx) => (
                   <div key={idx} className="flex items-center justify-between bg-slate-50 rounded-lg p-3" data-testid={`college-${idx}`}>
                     <span className="text-slate-900">{college}</span>
                     <button
@@ -216,7 +248,7 @@ export default function SystemSettings() {
                     </button>
                   </div>
                 ))}
-                {config.colleges.length === 0 && (
+                {(config.colleges || []).length === 0 && (
                   <p className="text-sm text-slate-500 text-center py-4">No colleges added yet</p>
                 )}
               </div>
@@ -247,7 +279,7 @@ export default function SystemSettings() {
                 </button>
               </div>
               <div className="space-y-2">
-                {config.departments.map((dept, idx) => (
+                {(config.departments || []).map((dept, idx) => (
                   <div key={idx} className="flex items-center justify-between bg-slate-50 rounded-lg p-3" data-testid={`department-${idx}`}>
                     <span className="text-slate-900">{dept}</span>
                     <button
@@ -258,7 +290,7 @@ export default function SystemSettings() {
                     </button>
                   </div>
                 ))}
-                {config.departments.length === 0 && (
+                {(config.departments || []).length === 0 && (
                   <p className="text-sm text-slate-500 text-center py-4">No departments added yet</p>
                 )}
               </div>
@@ -289,7 +321,7 @@ export default function SystemSettings() {
                 </button>
               </div>
               <div className="space-y-2">
-                {config.divisions.map((div, idx) => (
+                {(config.divisions || []).map((div, idx) => (
                   <div key={idx} className="flex items-center justify-between bg-slate-50 rounded-lg p-3" data-testid={`division-${idx}`}>
                     <span className="text-slate-900">{div}</span>
                     <button
@@ -300,8 +332,50 @@ export default function SystemSettings() {
                     </button>
                   </div>
                 ))}
-                {config.divisions.length === 0 && (
+                {(config.divisions || []).length === 0 && (
                   <p className="text-sm text-slate-500 text-center py-4">No divisions added yet</p>
+                )}
+              </div>
+            </div>
+
+            {/* Years */}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-slate-900 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                Years
+              </h2>
+              <div className="flex space-x-3 mb-4">
+                <input
+                  type="text"
+                  value={newYear}
+                  onChange={(e) => setNewYear(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addYear()}
+                  data-testid="year-input"
+                  placeholder="Enter year (e.g., 1st Year, 2nd Year)"
+                  className="flex-1 h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  onClick={addYear}
+                  data-testid="add-year"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-3 font-semibold transition-all flex items-center space-x-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>Add</span>
+                </button>
+              </div>
+              <div className="space-y-2">
+                {(config.years || []).map((year, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-slate-50 rounded-lg p-3" data-testid={`year-${idx}`}>
+                    <span className="text-slate-900">{year}</span>
+                    <button
+                      onClick={() => removeYear(year)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {(config.years || []).length === 0 && (
+                  <p className="text-sm text-slate-500 text-center py-4">No years added yet</p>
                 )}
               </div>
             </div>

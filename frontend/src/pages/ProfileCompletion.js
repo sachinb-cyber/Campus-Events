@@ -11,12 +11,14 @@ export default function ProfileCompletion({ user }) {
   const [colleges, setColleges] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [divisions, setDivisions] = useState([]);
+  const [years, setYears] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [formData, setFormData] = useState({
     name: user?.name || '',
     college: '',
     department: '',
     division: '',
+    year: '',
     phone: '',
     prn: ''
   });
@@ -35,6 +37,7 @@ export default function ProfileCompletion({ user }) {
       setColleges(data.colleges || []);
       setDepartments(data.departments || []);
       setDivisions(data.divisions || []);
+      setYears(data.years || []);
     } catch (error) {
       toast.error('Failed to load colleges and departments');
       console.error(error);
@@ -55,7 +58,7 @@ export default function ProfileCompletion({ user }) {
     e.preventDefault();
 
     // Validate required fields
-    if (!formData.college || !formData.department || !formData.division || !formData.phone || !formData.prn) {
+    if (!formData.college || !formData.department || !formData.division || !formData.year || !formData.phone || !formData.prn) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -83,6 +86,7 @@ export default function ProfileCompletion({ user }) {
           college: formData.college,
           department: formData.department,
           division: formData.division,
+          year: formData.year,
           phone: formData.phone,
           prn: formData.prn
         })
@@ -211,6 +215,27 @@ export default function ProfileCompletion({ user }) {
               {divisions.map((div) => (
                 <option key={div} value={div}>
                   {div}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Year */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Year *
+            </label>
+            <select
+              name="year"
+              value={formData.year}
+              onChange={handleChange}
+              required
+              className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="">Select your year</option>
+              {years.map((yr) => (
+                <option key={yr} value={yr}>
+                  {yr}
                 </option>
               ))}
             </select>
