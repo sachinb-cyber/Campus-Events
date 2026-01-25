@@ -14,8 +14,9 @@ export default function Registration() {
   const [submitting, setSubmitting] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [singleUserData, setSingleUserData] = useState({
-    name: '', phone: '', college: '', department: '', year: '', prn: ''
+    name: '', phone: '', college: '', department: '', year: '', prn: '', email: ''
   });
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [teamMembers, setTeamMembers] = useState([
     { name: '', email: '', phone: '', college: '', department: '', year: '', prn: '' }
   ]);
@@ -37,8 +38,12 @@ export default function Registration() {
           college: userData.college || '',
           department: userData.department || '',
           year: userData.year || '',
-          prn: userData.prn || ''
+          prn: userData.prn || '',
+          email: userData.email || ''
         });
+        // Check if profile is complete
+        const profileComplete = userData.name && userData.college && userData.department && userData.year;
+        setIsProfileComplete(profileComplete);
       }
 
       // Fetch event
@@ -274,71 +279,61 @@ export default function Registration() {
             ) : (
               <div className="space-y-4">
                 <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-                  <p className="text-indigo-900 font-medium text-sm mb-2">
-                    Your registration details (auto-filled from your profile)
-                  </p>
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="text-indigo-900 font-medium text-sm">
+                        Your registration details (from your profile)
+                      </p>
+                      <p className="text-xs text-indigo-700 mt-1">
+                        {isProfileComplete ? '✓ Profile Complete' : '⚠ Profile Incomplete'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/profile')}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium transition-all"
+                    >
+                      Edit Profile
+                    </button>
+                  </div>
                   <p className="text-xs text-indigo-700">Email (locked): {user?.email}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Name *</label>
-                    <input
-                      type="text"
-                      value={singleUserData.name}
-                      onChange={(e) => setSingleUserData({...singleUserData, name: e.target.value})}
-                      required
-                      className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
+                    <div className="w-full h-12 px-4 bg-slate-100 border border-slate-200 rounded-lg flex items-center text-slate-700 font-medium">
+                      {singleUserData.name || '(Not set)'}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Phone</label>
-                    <input
-                      type="tel"
-                      value={singleUserData.phone}
-                      onChange={(e) => setSingleUserData({...singleUserData, phone: e.target.value})}
-                      className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
+                    <div className="w-full h-12 px-4 bg-slate-100 border border-slate-200 rounded-lg flex items-center text-slate-700">
+                      {singleUserData.phone || '(Not set)'}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">College</label>
-                    <input
-                      type="text"
-                      value={singleUserData.college}
-                      onChange={(e) => setSingleUserData({...singleUserData, college: e.target.value})}
-                      className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
+                    <div className="w-full h-12 px-4 bg-slate-100 border border-slate-200 rounded-lg flex items-center text-slate-700">
+                      {singleUserData.college || '(Not set)'}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Department</label>
-                    <input
-                      type="text"
-                      value={singleUserData.department}
-                      onChange={(e) => setSingleUserData({...singleUserData, department: e.target.value})}
-                      className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
+                    <div className="w-full h-12 px-4 bg-slate-100 border border-slate-200 rounded-lg flex items-center text-slate-700">
+                      {singleUserData.department || '(Not set)'}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Year</label>
-                    <select
-                      value={singleUserData.year}
-                      onChange={(e) => setSingleUserData({...singleUserData, year: e.target.value})}
-                      className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="">Select Year</option>
-                      <option value="1st Year">1st Year</option>
-                      <option value="2nd Year">2nd Year</option>
-                      <option value="3rd Year">3rd Year</option>
-                      <option value="4th Year">4th Year</option>
-                    </select>
+                    <div className="w-full h-12 px-4 bg-slate-100 border border-slate-200 rounded-lg flex items-center text-slate-700">
+                      {singleUserData.year || '(Not set)'}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">PRN</label>
-                    <input
-                      type="text"
-                      value={singleUserData.prn}
-                      onChange={(e) => setSingleUserData({...singleUserData, prn: e.target.value})}
-                      className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
+                    <div className="w-full h-12 px-4 bg-slate-100 border border-slate-200 rounded-lg flex items-center text-slate-700">
+                      {singleUserData.prn || '(Not set)'}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -572,21 +572,27 @@ function EventModal({ event, onClose, onSuccess, isSuperAdmin }) {
                 {showCustomFields && (
                   <div className="space-y-4">
                     <p className="text-xs text-slate-600">Add custom registration form fields. Users will be asked to fill these when registering.</p>
-                    <div className="space-y-3">
-                      {formData.custom_fields.map((field, index) => (
-                        <FieldEditor
-                          key={field.id}
-                          field={field}
-                          index={index}
-                          onUpdate={handleUpdateField}
-                          onDelete={handleDeleteField}
-                          onDuplicate={handleDuplicateField}
-                          onAddOption={handleAddOption}
-                          onUpdateOption={handleUpdateOption}
-                          onRemoveOption={handleRemoveOption}
-                        />
-                      ))}
-                    </div>
+                    {formData.custom_fields.length === 0 ? (
+                      <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center">
+                        <p className="text-slate-500 text-sm">No fields added yet. Click "Add Field" to create your first field.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {formData.custom_fields.map((field, index) => (
+                          <ExtendedFieldEditor
+                            key={field.id}
+                            field={field}
+                            index={index}
+                            onUpdate={handleUpdateField}
+                            onDelete={handleDeleteField}
+                            onDuplicate={handleDuplicateField}
+                            onAddOption={handleAddOption}
+                            onUpdateOption={handleUpdateOption}
+                            onRemoveOption={handleRemoveOption}
+                          />
+                        ))}
+                      </div>
+                    )}
                     <button
                       type="button"
                       onClick={handleAddField}
