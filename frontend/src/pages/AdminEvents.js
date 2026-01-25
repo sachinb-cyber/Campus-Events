@@ -1,18 +1,48 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, Settings, FileText, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
+const FIELD_TYPES = [
+  { value: 'text', label: 'Short Text' },
+  { value: 'textarea', label: 'Long Text' },
+  { value: 'number', label: 'Number' },
+  { value: 'email', label: 'Email' },
+  { value: 'phone', label: 'Phone' },
+  { value: 'date', label: 'Date' },
+  { value: 'checkbox', label: 'Checkbox' },
+  { value: 'radio', label: 'Multiple Choice' },
+  { value: 'select', label: 'Dropdown' },
+  { value: 'file', label: 'File Upload' }
+];
 
 export default function AdminEvents() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [useExtendedForm, setUseExtendedForm] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     fetchEvents();
+    fetchUser();
   }, []);
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data);
+      }
+    } catch (error) {
+      console.error('Failed to load user');
+    }
+  };
 
   const fetchEvents = async () => {
     try {
@@ -51,6 +81,13 @@ export default function AdminEvents() {
 
   const handleCreate = () => {
     setEditingEvent(null);
+    setUseExtendedForm(false);
+    setShowModal(true);
+  };
+
+  const handleCreateExtended = () => {
+    setEditingEvent(null);
+    setUseExtendedForm(true);
     setShowModal(true);
   };
 
@@ -64,14 +101,26 @@ export default function AdminEvents() {
             </h1>
             <p className="text-slate-600">Create, edit, and manage all events</p>
           </div>
-          <button
-            onClick={handleCreate}
-            data-testid="create-event-button"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 py-3 font-semibold shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center space-x-2"
-          >
-            <Plus className="w-5 h-5" />
-            <span className="hidden md:inline">Create Event</span>
-          </button>
+          <div className="flex gap-2">
+            {user?.role === 'superadmin' && (
+              <button
+                onClick={handleCreateExtended}
+                data-testid="create-extended-event-button"
+                className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-6 py-3 font-semibold shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center space-x-2"
+              >
+                <Settings className="w-5 h-5" />
+                <span className="hidden md:inline">Extended Form</span>
+              </button>
+            )}
+            <button
+              onClick={handleCreate}
+              data-testid="create-event-button"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 py-3 font-semibold shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center space-x-2"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="hidden md:inline">Create Event</span>
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -101,18 +150,32 @@ export default function AdminEvents() {
       </div>
 
       {showModal && (
-        <EventModal
-          event={editingEvent}
-          onClose={() => {
-            setShowModal(false);
-            setEditingEvent(null);
-          }}
-          onSuccess={() => {
-            setShowModal(false);
-            setEditingEvent(null);
-            fetchEvents();
-          }}
-        />
+        useExtendedForm ? (
+          <ExtendedEventFormModal
+            onClose={() => {
+              setShowModal(false);
+              setUseExtendedForm(false);
+            }}
+            onSuccess={() => {
+              setShowModal(false);
+              setUseExtendedForm(false);
+              fetchEvents();
+            }}
+          />
+        ) : (
+          <EventModal
+            event={editingEvent}
+            onClose={() => {
+              setShowModal(false);
+              setEditingEvent(null);
+            }}
+            onSuccess={() => {
+              setShowModal(false);
+              setEditingEvent(null);
+              fetchEvents();
+            }}
+          />
+        )
       )}
     </div>
   );
@@ -423,6 +486,489 @@ function EventModal({ event, onClose, onSuccess }) {
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+function ExtendedEventFormModal({ onClose, onSuccess }) {
+  const [loading, setLoading] = useState(false);
+  const [eventData, setEventData] = useState({
+    title: '',
+    description: '',
+    event_type: 'single',
+    team_size: 2,
+    event_date: '',
+    deadline: '',
+    category: 'Technical',
+    venue: '',
+    rules: '',
+    organizer_info: '',
+    is_paid: false,
+    custom_fields: [
+      { id: 1, label: 'Name', type: 'text', required: true, options: [] }
+    ]
+  });
+
+  const [nextFieldId, setNextFieldId] = useState(2);
+  const [showPreview, setShowPreview] = useState(false);
+
+  const handleEventChange = (field, value) => {
+    setEventData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleAddField = () => {
+    const newField = {
+      id: nextFieldId,
+      label: `Field ${nextFieldId}`,
+      type: 'text',
+      required: false,
+      options: []
+    };
+    setEventData(prev => ({
+      ...prev,
+      custom_fields: [...prev.custom_fields, newField]
+    }));
+    setNextFieldId(nextFieldId + 1);
+  };
+
+  const handleUpdateField = (fieldId, key, value) => {
+    setEventData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.map(field =>
+        field.id === fieldId ? { ...field, [key]: value } : field
+      )
+    }));
+  };
+
+  const handleDeleteField = (fieldId) => {
+    if (eventData.custom_fields.length === 1) {
+      toast.error('Event must have at least one field');
+      return;
+    }
+    setEventData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.filter(field => field.id !== fieldId)
+    }));
+  };
+
+  const handleDuplicateField = (fieldId) => {
+    const fieldToDuplicate = eventData.custom_fields.find(f => f.id === fieldId);
+    if (!fieldToDuplicate) return;
+
+    const newField = {
+      ...JSON.parse(JSON.stringify(fieldToDuplicate)),
+      id: nextFieldId,
+      label: `${fieldToDuplicate.label} (Copy)`
+    };
+
+    setEventData(prev => ({
+      ...prev,
+      custom_fields: [...prev.custom_fields, newField]
+    }));
+    setNextFieldId(nextFieldId + 1);
+  };
+
+  const handleAddOption = (fieldId) => {
+    setEventData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.map(field =>
+        field.id === fieldId
+          ? { ...field, options: [...(field.options || []), ''] }
+          : field
+      )
+    }));
+  };
+
+  const handleUpdateOption = (fieldId, optionIndex, value) => {
+    setEventData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.map(field =>
+        field.id === fieldId
+          ? {
+              ...field,
+              options: field.options.map((opt, idx) =>
+                idx === optionIndex ? value : opt
+              )
+            }
+          : field
+      )
+    }));
+  };
+
+  const handleRemoveOption = (fieldId, optionIndex) => {
+    setEventData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.map(field =>
+        field.id === fieldId
+          ? {
+              ...field,
+              options: field.options.filter((_, idx) => idx !== optionIndex)
+            }
+          : field
+      )
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const payload = {
+        ...eventData,
+        team_size: eventData.event_type === 'team' ? parseInt(eventData.team_size) : null
+      };
+
+      const response = await fetch(`${BACKEND_URL}/api/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to create event');
+      }
+
+      toast.success('Event with extended form created successfully!');
+      onSuccess();
+    } catch (error) {
+      toast.error(error.message || 'Failed to create event');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-slate-200 p-6">
+          <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+            Create Event with Extended Form
+          </h2>
+          <p className="text-sm text-slate-600 mt-1">Design custom registration forms like Google Forms</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-8">
+          {/* Event Basic Details */}
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 mb-4">Event Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">Title *</label>
+                <input
+                  type="text"
+                  value={eventData.title}
+                  onChange={(e) => handleEventChange('title', e.target.value)}
+                  required
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">Description *</label>
+                <textarea
+                  value={eventData.description}
+                  onChange={(e) => handleEventChange('description', e.target.value)}
+                  required
+                  rows={2}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Event Type *</label>
+                <select
+                  value={eventData.event_type}
+                  onChange={(e) => handleEventChange('event_type', e.target.value)}
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                >
+                  <option value="single">Single Participant</option>
+                  <option value="team">Team</option>
+                </select>
+              </div>
+              {eventData.event_type === 'team' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Team Size *</label>
+                  <input
+                    type="number"
+                    value={eventData.team_size}
+                    onChange={(e) => handleEventChange('team_size', e.target.value)}
+                    min="2"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Event Date *</label>
+                <input
+                  type="datetime-local"
+                  value={eventData.event_date}
+                  onChange={(e) => handleEventChange('event_date', e.target.value)}
+                  required
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Deadline *</label>
+                <input
+                  type="datetime-local"
+                  value={eventData.deadline}
+                  onChange={(e) => handleEventChange('deadline', e.target.value)}
+                  required
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Category *</label>
+                <select
+                  value={eventData.category}
+                  onChange={(e) => handleEventChange('category', e.target.value)}
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                >
+                  <option value="Technical">Technical</option>
+                  <option value="Cultural">Cultural</option>
+                  <option value="Sports">Sports</option>
+                  <option value="Workshop">Workshop</option>
+                  <option value="Seminar">Seminar</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Venue *</label>
+                <input
+                  type="text"
+                  value={eventData.venue}
+                  onChange={(e) => handleEventChange('venue', e.target.value)}
+                  required
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Custom Fields Form Builder */}
+          <div className="border-t border-slate-200 pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-900">Registration Form Fields</h3>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg font-medium transition-all text-sm"
+                >
+                  <FileText className="w-4 h-4" />
+                  {showPreview ? 'Edit' : 'Preview'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddField}
+                  className="flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-all text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Field
+                </button>
+              </div>
+            </div>
+
+            {showPreview ? (
+              <ExtendedFormPreview fields={eventData.custom_fields} />
+            ) : (
+              <div className="space-y-3">
+                {eventData.custom_fields.map((field, index) => (
+                  <ExtendedFieldEditor
+                    key={field.id}
+                    field={field}
+                    index={index}
+                    onUpdate={handleUpdateField}
+                    onDelete={handleDeleteField}
+                    onDuplicate={handleDuplicateField}
+                    onAddOption={handleAddOption}
+                    onUpdateOption={handleUpdateOption}
+                    onRemoveOption={handleRemoveOption}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg px-6 py-3 font-semibold transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-3 font-semibold shadow-lg transition-all disabled:opacity-50"
+            >
+              {loading ? 'Creating...' : 'Create Event'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ExtendedFieldEditor({
+  field,
+  index,
+  onUpdate,
+  onDelete,
+  onDuplicate,
+  onAddOption,
+  onUpdateOption,
+  onRemoveOption
+}) {
+  const needsOptions = ['radio', 'select'].includes(field.type);
+
+  return (
+    <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+      <div className="flex items-start justify-between mb-3">
+        <span className="text-xs font-medium text-indigo-700 bg-indigo-100 px-2 py-1 rounded">
+          Field {index + 1}
+        </span>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={() => onDuplicate(field.id)}
+            className="p-1 hover:bg-indigo-100 text-indigo-600 rounded text-sm"
+          >
+            <Copy className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(field.id)}
+            className="p-1 hover:bg-red-100 text-red-600 rounded text-sm"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="md:col-span-2">
+          <label className="block text-xs font-medium text-slate-600 mb-1">Label *</label>
+          <input
+            type="text"
+            value={field.label}
+            onChange={(e) => onUpdate(field.id, 'label', e.target.value)}
+            className="w-full h-8 px-2 bg-white border border-slate-200 rounded text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-1">Type *</label>
+          <select
+            value={field.type}
+            onChange={(e) => onUpdate(field.id, 'type', e.target.value)}
+            className="w-full h-8 px-2 bg-white border border-slate-200 rounded text-sm"
+          >
+            {FIELD_TYPES.map(type => (
+              <option key={type.value} value={type.value}>{type.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-end">
+          <label className="flex items-center text-sm">
+            <input
+              type="checkbox"
+              checked={field.required}
+              onChange={(e) => onUpdate(field.id, 'required', e.target.checked)}
+              className="w-4 h-4 rounded"
+            />
+            <span className="ml-2 text-xs text-slate-700">Required</span>
+          </label>
+        </div>
+      </div>
+
+      {needsOptions && (
+        <div className="mt-3 pt-3 border-t border-slate-200">
+          <div className="flex justify-between mb-2">
+            <label className="text-xs font-medium text-slate-700">Options</label>
+            <button
+              type="button"
+              onClick={() => onAddOption(field.id)}
+              className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-600 rounded hover:bg-indigo-200"
+            >
+              + Add
+            </button>
+          </div>
+          <div className="space-y-1">
+            {(field.options || []).map((option, optIdx) => (
+              <div key={optIdx} className="flex gap-1">
+                <input
+                  type="text"
+                  value={option}
+                  onChange={(e) => onUpdateOption(field.id, optIdx, e.target.value)}
+                  className="flex-1 h-7 px-2 bg-white border border-slate-200 rounded text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => onRemoveOption(field.id, optIdx)}
+                  className="px-2 h-7 bg-red-50 hover:bg-red-100 text-red-600 rounded text-xs"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExtendedFormPreview({ fields }) {
+  return (
+    <div className="bg-slate-100 rounded-lg p-6 space-y-4 border-2 border-indigo-200">
+      <p className="text-xs text-slate-600 text-center">Live Preview</p>
+      {fields.map((field) => (
+        <div key={field.id}>
+          <label className="block text-xs font-medium text-slate-700 mb-2">
+            {field.label} {field.required && <span className="text-red-600">*</span>}
+          </label>
+          {field.type === 'text' && (
+            <input type="text" disabled className="w-full h-8 px-2 bg-white border border-slate-200 rounded text-sm" />
+          )}
+          {field.type === 'textarea' && (
+            <textarea disabled rows={2} className="w-full px-2 py-1 bg-white border border-slate-200 rounded text-sm" />
+          )}
+          {['number', 'email', 'phone', 'date'].includes(field.type) && (
+            <input type={field.type} disabled className="w-full h-8 px-2 bg-white border border-slate-200 rounded text-sm" />
+          )}
+          {field.type === 'checkbox' && (
+            <input type="checkbox" disabled className="w-4 h-4 rounded" />
+          )}
+          {field.type === 'radio' && (
+            <div className="space-y-1">
+              {(field.options || []).map((opt, i) => (
+                <label key={i} className="flex items-center text-sm">
+                  <input type="radio" disabled className="w-4 h-4" />
+                  <span className="ml-2">{opt}</span>
+                </label>
+              ))}
+            </div>
+          )}
+          {field.type === 'select' && (
+            <select disabled className="w-full h-8 px-2 bg-white border border-slate-200 rounded text-sm">
+              <option>Select</option>
+              {(field.options || []).map((opt, i) => (
+                <option key={i}>{opt}</option>
+              ))}
+            </select>
+          )}
+          {field.type === 'file' && (
+            <div className="border-2 border-dashed border-slate-300 rounded p-4 text-center text-xs text-slate-400">
+              File upload
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

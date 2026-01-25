@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Download, Users, Filter, Award, XCircle, Trash2 } from 'lucide-react';
+import { Download, Users, Filter, Award, XCircle, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -174,6 +174,7 @@ function RegistrationCard({ registration, isSuperAdmin }) {
   const user = registration.user;
   const registeredDate = new Date(registration.created_at);
   const [showCertModal, setShowCertModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [certType, setCertType] = useState('');
 
   const handleCancelRegistration = async () => {
@@ -280,6 +281,14 @@ function RegistrationCard({ registration, isSuperAdmin }) {
       {isSuperAdmin && (registration.status === 'active' || registration.status === 'cancellation_requested') && (
         <div className="mt-4 flex flex-wrap gap-2">
           <button
+            onClick={() => setShowDetailsModal(true)}
+            data-testid="view-details-button"
+            className="bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg px-4 py-2 font-medium transition-all flex items-center space-x-2"
+          >
+            <Eye className="w-4 h-4" />
+            <span>View Details</span>
+          </button>
+          <button
             onClick={() => setShowCertModal(true)}
             data-testid="issue-certificate-button"
             className="bg-green-50 hover:bg-green-100 text-green-700 rounded-lg px-4 py-2 font-medium transition-all flex items-center space-x-2"
@@ -304,6 +313,10 @@ function RegistrationCard({ registration, isSuperAdmin }) {
             <span>Delete</span>
           </button>
         </div>
+      )}
+
+      {showDetailsModal && (
+        <RegistrationDetailsModal registration={registration} onClose={() => setShowDetailsModal(false)} />
       )}
 
       {showCertModal && (
@@ -361,6 +374,132 @@ function RegistrationCard({ registration, isSuperAdmin }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function RegistrationDetailsModal({ registration, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-white border-b border-slate-200 p-6">
+          <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+            Registration Details
+          </h2>
+          <p className="text-sm text-slate-600 mt-1">All information submitted by the user</p>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* User Information */}
+          <div className="bg-slate-50 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-slate-900 mb-3">User Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-slate-600 uppercase">Name</label>
+                <p className="text-slate-900 font-medium">{registration.user?.name || '-'}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 uppercase">Email</label>
+                <p className="text-slate-900 font-medium">{registration.user?.email || '-'}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 uppercase">Phone</label>
+                <p className="text-slate-900 font-medium">{registration.user?.phone || '-'}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 uppercase">College</label>
+                <p className="text-slate-900 font-medium">{registration.user?.college || '-'}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 uppercase">Branch</label>
+                <p className="text-slate-900 font-medium">{registration.user?.branch || '-'}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 uppercase">Year</label>
+                <p className="text-slate-900 font-medium">{registration.user?.year || '-'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Registration Information */}
+          <div className="bg-indigo-50 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-slate-900 mb-3">Registration Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-slate-600 uppercase">Event</label>
+                <p className="text-slate-900 font-medium">{registration.event?.title || '-'}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 uppercase">Registration ID</label>
+                <p className="text-slate-900 font-medium">{registration.registration_id || '-'}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 uppercase">Registered On</label>
+                <p className="text-slate-900 font-medium">{new Date(registration.created_at).toLocaleString()}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 uppercase">Status</label>
+                <p className="text-slate-900 font-medium capitalize">{registration.status || '-'}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 uppercase">Payment Status</label>
+                <p className="text-slate-900 font-medium capitalize">{registration.payment_status || '-'}</p>
+              </div>
+              {registration.team_name && (
+                <div>
+                  <label className="text-xs font-medium text-slate-600 uppercase">Team Name</label>
+                  <p className="text-slate-900 font-medium">{registration.team_name}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Custom Form Fields */}
+          {registration.custom_fields && Object.keys(registration.custom_fields).length > 0 && (
+            <div className="bg-green-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-slate-900 mb-3">Form Responses</h3>
+              <div className="space-y-3">
+                {Object.entries(registration.custom_fields).map(([key, value]) => (
+                  <div key={key} className="bg-white rounded p-3 border border-slate-200">
+                    <label className="text-xs font-medium text-slate-600 uppercase block mb-1">{key}</label>
+                    <p className="text-slate-900 break-words whitespace-pre-wrap">
+                      {typeof value === 'object' ? JSON.stringify(value) : value || '-'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Team Members */}
+          {registration.team_members && registration.team_members.length > 0 && (
+            <div className="bg-purple-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-slate-900 mb-3">Team Members ({registration.team_members.length})</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {registration.team_members.map((member, index) => (
+                  <div key={index} className="bg-white rounded-lg p-3 border border-slate-200">
+                    <p className="font-medium text-slate-900 mb-2">{member.name}</p>
+                    <div className="text-sm text-slate-600 space-y-1">
+                      <p>Email: {member.email || '-'}</p>
+                      <p>Phone: {member.phone || '-'}</p>
+                      <p>College: {member.college || '-'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="sticky bottom-0 bg-white border-t border-slate-200 p-6">
+          <button
+            onClick={onClose}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-3 font-semibold transition-all"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

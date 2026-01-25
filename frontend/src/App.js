@@ -72,7 +72,6 @@ function AppRouter() {
       <Route path="/admin/tickets" element={<AdminRoute><AdminTickets /></AdminRoute>} />
       <Route path="/superadmin/panel" element={<SuperAdminRoute><SuperAdminPanel /></SuperAdminRoute>} />
       <Route path="/superadmin/settings" element={<SuperAdminRoute><SystemSettings /></SuperAdminRoute>} />
-      <Route path="/superadmin/create-extended-event" element={<SuperAdminRoute><ExtendedEventForm /></SuperAdminRoute>} />
       <Route path="/admin/user/:userId" element={<AdminRoute><AdminUserProfile /></AdminRoute>} />
       <Route path="/superadmin/user/:userId" element={<SuperAdminRoute><AdminUserProfile /></SuperAdminRoute>} />
     </Routes>

@@ -129,7 +129,7 @@ export default function SuperAdminPanel() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <button
-            onClick={() => navigate('/superadmin/create-extended-event')}
+            onClick={() => navigate('/admin/events')}
             className="bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-2xl shadow-lg p-6 transition-all active:scale-95"
           >
             <FormInput className="w-8 h-8 mb-3" />
