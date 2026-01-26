@@ -13,8 +13,12 @@ export default function ProfileCompletion({ user }) {
   const [divisions, setDivisions] = useState([]);
   const [years, setYears] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
+  
+  // Extract email name (part before @)
+  const emailName = user?.email ? user.email.split('@')[0] : '';
+  
   const [formData, setFormData] = useState({
-    name: user?.name || '',
+    name: '', // Start empty, will show email name as hint
     college: '',
     department: '',
     division: '',
@@ -145,16 +149,18 @@ export default function ProfileCompletion({ user }) {
           {/* Name */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Full Name
+              Full Name *
             </label>
             <input
               type="text"
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Your name"
+              placeholder={`e.g., ${emailName}`}
+              required
               className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
+            <p className="text-xs text-slate-500 mt-1">Email-based name: {emailName}</p>
           </div>
 
           {/* College */}

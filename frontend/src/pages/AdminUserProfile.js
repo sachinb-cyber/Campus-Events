@@ -105,6 +105,9 @@ export default function AdminUserProfile() {
                 )}
                 <div>
                   <h1 className="text-3xl font-bold">{user.name}</h1>
+                  {(user.role === 'admin' || user.role === 'superadmin') && user.email && (
+                    <p className="text-sm text-white/80 mt-1">Email name: {user.email.split('@')[0]}</p>
+                  )}
                   <div className="flex items-center space-x-2 mt-1">
                     <Shield className="w-4 h-4" />
                     <span className="text-sm font-medium">
@@ -205,6 +208,17 @@ export default function AdminUserProfile() {
                     <p className="text-sm font-medium text-slate-600">Department</p>
                     <p className="text-lg font-semibold text-slate-900">
                       {user.department || 'Not provided'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Division */}
+                <div className="flex items-start space-x-4 p-4 bg-slate-50 rounded-xl">
+                  <Hash className="w-6 h-6 text-teal-600 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Division</p>
+                    <p className="text-lg font-semibold text-slate-900">
+                      {user.division || 'Not provided'}
                     </p>
                   </div>
                 </div>
