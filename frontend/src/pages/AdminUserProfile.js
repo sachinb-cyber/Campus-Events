@@ -105,9 +105,6 @@ export default function AdminUserProfile() {
                 )}
                 <div>
                   <h1 className="text-3xl font-bold">{user.name}</h1>
-                  {(user.role === 'admin' || user.role === 'superadmin') && user.email && (
-                    <p className="text-sm text-white/80 mt-1">Email name: {user.email.split('@')[0]}</p>
-                  )}
                   <div className="flex items-center space-x-2 mt-1">
                     <Shield className="w-4 h-4" />
                     <span className="text-sm font-medium">
